@@ -1,0 +1,6 @@
+package storage
+
+type StoreResult struct {
+	Filename string
+	Path     string
+}
