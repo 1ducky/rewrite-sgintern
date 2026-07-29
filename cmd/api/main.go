@@ -1,9 +1,9 @@
-package api
+package main
 
 import (
-	"RewriteProject/internal/app/assets"
-	"RewriteProject/internal/app/config"
-	"RewriteProject/internal/app/storage"
+	"RewriteProject/internal/assets"
+	"RewriteProject/internal/config"
+	"RewriteProject/internal/storage"
 )
 
 func main() {
@@ -12,7 +12,11 @@ func main() {
 		panic(err)
 	}
 
-	LocalStorageRepo := storage.NewLocalStorage(appConfig.StorageConfig)
+	LocalStorageRepo, err := storage.NewLocalStorage(appConfig.StorageConfig)
+	if err != nil {
+		panic(err)
+	}
+
 	assetSetvice := assets.NewService(LocalStorageRepo)
 	_ = assetSetvice
 }

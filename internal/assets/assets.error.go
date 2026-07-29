@@ -9,6 +9,7 @@ import (
 var (
 	ErrAssetNotFound      = errors.New("asset not found")
 	ErrAssetAlreadyExists = errors.New("asset already exists")
+	ErrAssetFailedCreate  = errors.New("asset failed create")
 	ErrInvalidAssetInput  = errors.New("invalid asset input")
 	ErrAssetTooLarge      = errors.New("asset size exceeds limit")
 	ErrUnsupportedFormat  = errors.New("unsupported asset format")
