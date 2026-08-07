@@ -43,12 +43,8 @@ func NewLocalStorage(conf config.StorageConfig) (assets.RepositoryContract, erro
 	return &LocalStorage{conf: conf}, nil
 }
 
-func (l *LocalStorage) Write(ctx context.Context, reader io.Reader, path string, fileName string) (assets.StoreResult, error) {
-	resolvePath, err := l.resolvePath(path, fileName)
-	if err != nil {
-		return assets.StoreResult{}, err
-	}
-	dst, err := os.Create(resolvePath)
+func (l *LocalStorage) Write(ctx context.Context, reader io.Reader, path string) (assets.StoreResult, error) {
+	dst, err := os.Create(path)
 	if err != nil {
 		return assets.StoreResult{}, assets.ErrAssetFailedCreate
 	}
@@ -59,18 +55,18 @@ func (l *LocalStorage) Write(ctx context.Context, reader io.Reader, path string,
 		return assets.StoreResult{}, assets.ErrAssetFailedCreate
 	}
 
-	return assets.StoreResult{Filename: fileName, Path: resolvePath, Size: size}, nil
+	return assets.StoreResult{Path: path, Size: size}, nil
 }
 
-func (l *LocalStorage) Delete(ctx context.Context, path string) (string, error) {
+func (l *LocalStorage) Delete(ctx context.Context, path string) error {
 	err := os.Remove(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", assets.ErrAssetNotFound
+			return assets.ErrAssetNotFound
 		}
-		return "", err
+		return err
 	}
-	return "Asset deleted", nil
+	return nil
 }
 
 func (l *LocalStorage) Read(ctx context.Context, path string) (io.ReadCloser, error) {

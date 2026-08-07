@@ -53,8 +53,8 @@ var MapErr = []entry{
 
 type ErrorAssets struct {
 	Code    CodeErr
-	Message string
 	Status  int
+	Message string
 }
 
 func TranslateErr(err error) (ErrorAssets, bool) {
@@ -64,7 +64,7 @@ func TranslateErr(err error) (ErrorAssets, bool) {
 	}
 	for _, e := range MapErr {
 		if e.err == err {
-			return ErrorAssets{Code: e.code, Message: e.message, Status: e.statusCode},
+			return ErrorAssets{e.code, e.statusCode, e.message},
 				true
 		}
 	}

@@ -8,6 +8,7 @@ import (
 
 type AppConfig struct {
 	StorageConfig StorageConfig
+	AuthConfig    AuthConfig
 }
 
 func LoadConfig() (AppConfig, error) {
@@ -16,7 +17,8 @@ func LoadConfig() (AppConfig, error) {
 		return AppConfig{}, err
 	}
 	StorageConf := LoadStorageConfig()
-	return AppConfig{StorageConfig: StorageConf}, nil
+	authConf := LoadAuthConfig()
+	return AppConfig{StorageConfig: StorageConf, AuthConfig: authConf}, nil
 }
 
 func getEnv(key, fallback string) string {
