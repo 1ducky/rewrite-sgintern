@@ -1,11 +1,48 @@
 package auth
 
-import "context"
+type AuthEntity struct {
+	ID       string
+	Username string
+	Role     Role
+	Version  int
+}
+type AuthLogin struct {
+	ID       string
+	Email    string
+	Password string
+	Username string
+	Role     Role
+}
+type RegisterPayload struct {
+	ID       string
+	Email    string
+	Password string
+	Username string
+}
+type LoginPayload struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
 
-type AuthContract interface {
-	Login(ctx context.Context) (string, error)
-	Register(ctx context.Context) (string, error)
-	Refresh(ctx context.Context) (string, error)
-	Logout(ctx context.Context) (string, error)
-	Verify(ctx context.Context) (string, error)
+type TokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+// Session
+type CreateSessionPayload struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	UserID       string `json:"user_id"`
+}
+type UpdateSessionPayload struct {
+	AccessToken     string `json:"access_token"`
+	OldrefreshToken string `json:"old_refresh_token"`
+	RefreshToken    string `json:"refresh_token"`
+	UserID          string `json:"user_id"`
+	Version         int    `json:"version"`
+}
+
+type DeleteSessionPayload struct {
+	AccessToken string `json:"access_token"`
 }
