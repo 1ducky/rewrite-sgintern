@@ -27,7 +27,7 @@ func (s *Service) Login(ctx context.Context, payload LoginPayload) (TokenRespons
 	if user.Password != payload.Password {
 		return TokenResponse{}, ErrInvalidPassword
 	}
-	
+
 	token, err := s.Token.CreateToken(ctx, TokenEntity{ID: user.ID, Role: user.Role, Version: 0}, 5)
 	if err != nil {
 		return TokenResponse{}, err
@@ -91,9 +91,22 @@ func (s *Service) Refresh(ctx context.Context, oldrefreshToken string) (TokenRes
 	return TokenResponse{AccessToken: res.AccessToken, RefreshToken: res.RefreshToken}, nil
 }
 
-func (s *Service) Logout(ctx context.Context, refreshToken string) (string, error) {
+func (s *Service) Logout(ctx context.Context, oldrefreshToken string) (string, error) {
 	// Revoke Version
-	return "", nil
+	user, err := s.Token.VerifyToken(ctx, oldrefreshToken)
+	if err != nil {
+		return "", err
+	}
+	err = s.Session.Delete(ctx, DeleteSessionPayload{
+		UserID:       user.ID,
+		RefreshToken: oldrefreshToken,
+		Version:      user.Version,
+	})
+
+	if err != nil {
+		return "", err
+	}
+	return "success", nil
 }
 
 func (s *Service) Verify(ctx context.Context, token string) (TokenEntity, error) {

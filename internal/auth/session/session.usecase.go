@@ -19,8 +19,8 @@ func (s *Service) Rotate(ctx context.Context, payload auth.UpdateSessionPayload)
 	return auth.SessionEntity{}, nil
 }
 
-func (s *Service) Delete(ctx context.Context, payload auth.DeleteSessionPayload) (auth.SessionEntity, error) {
-	return auth.SessionEntity{}, nil
+func (s *Service) Delete(ctx context.Context, payload auth.DeleteSessionPayload) error {
+	return nil
 }
 
 func (s *Service) GetByAccessToken(ctx context.Context, userID, accessToken string) (auth.SessionEntity, error) {

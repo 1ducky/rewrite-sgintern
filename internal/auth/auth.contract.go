@@ -25,7 +25,7 @@ type CredentialRepositoryContract interface {
 type SessionUsecase interface {
 	Create(ctx context.Context, payload CreateSessionPayload) (SessionEntity, error)                  //save token to session
 	Rotate(ctx context.Context, payload UpdateSessionPayload) (SessionEntity, error)                  //update token
-	Delete(ctx context.Context, payload DeleteSessionPayload) (SessionEntity, error)                  //delete token from session
+	Delete(ctx context.Context, payload DeleteSessionPayload) error                                   //delete token from session
 	GetByAccessToken(ctx context.Context, UserID string, accessToken string) (SessionEntity, error)   //get token by access token
 	GetByRefreshToken(ctx context.Context, userID string, refreshToken string) (SessionEntity, error) //get token by refresh token
 }
