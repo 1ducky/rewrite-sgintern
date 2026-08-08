@@ -3,7 +3,7 @@ package assets
 import "time"
 
 type AssetMetaData struct {
-	ID        int         `json:"id"`
+	ID        string      `json:"id"`
 	Filename  string      `json:"filename"`
 	FileKey   string      `json:"file_key"`
 	Mime      Mime        `json:"mime"`

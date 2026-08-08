@@ -1,6 +1,12 @@
 package assets
 
 type Mime string
+type Ext string
+
+type TypeResolver struct {
+	Mime Mime
+	Ext  Ext
+}
 
 const (
 	//  Image Mime Allowed
@@ -13,15 +19,46 @@ const (
 	MimeTextCSV   Mime = "text/csv"
 	MimeTextPlain Mime = "text/plain"
 )
+const (
+	//  Image Mime Allowed
+	ExtJpg  Ext = ".jpg"
+	ExtPng  Ext = ".png"
+	ExtGif  Ext = ".gif"
+	ExtWebp Ext = ".webp"
 
-var AllowedImageMime = map[Mime]string{
-	MimeImageJPEG: ".jpg",
-	MimeImagePNG:  ".png",
-	MimeImageGIF:  ".gif",
-	MimeImageWebP: ".webp",
+	// Text Ext Allowed
+	ExtCsv       Ext = ".csv"
+	ExtTextPlain Ext = ".txt"
+)
+
+var AllowedImageType = map[string]TypeResolver{
+	".jpg":  TypeResolver{Mime: MimeImageJPEG, Ext: ExtJpg},
+	".png":  TypeResolver{Mime: MimeImagePNG, Ext: ExtPng},
+	".gif":  TypeResolver{Mime: MimeImageGIF, Ext: ExtGif},
+	".webp": TypeResolver{Mime: MimeImageWebP, Ext: ExtWebp},
 }
 
-var AllowedTextMime = map[Mime]string{
-	MimeTextCSV:   ".csv",
-	MimeTextPlain: ".txt",
+var AllowedTextType = map[string]TypeResolver{
+	".csv": TypeResolver{Mime: MimeTextCSV, Ext: ExtCsv},
+	".txt": TypeResolver{Mime: MimeTextPlain, Ext: ExtTextPlain},
+}
+
+func isAllowedext(ext string) (TypeResolver, bool) {
+
+	if mime, ok := AllowedImageType[ext]; ok {
+		return mime, true
+	}
+	if mime, ok := AllowedTextType[ext]; ok {
+		return mime, true
+	}
+	return TypeResolver{}, false
+}
+
+func isAllowedMimeByPolicy(payload AssetPolicy, mime Mime) bool {
+	for _, m := range payload.AllowedMime {
+		if m == mime {
+			return true
+		}
+	}
+	return false
 }
