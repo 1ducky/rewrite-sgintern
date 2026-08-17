@@ -3,6 +3,7 @@ package assets
 type UploadPolicy struct {
 	Category AssetCategory
 	MaxSize  int64
+	UserID   string
 }
 
 type AssetCategory string

@@ -1,11 +1,13 @@
 package assets
 
 type RecordPayload struct {
+	FileKey  string
 	Status   AssetStatus
 	Filename string
 	Mime     Mime
-	Url      string
+	Path     string
 	AuthorID string
+	Category AssetCategory
 }
 
 type UpdatePayload struct {
@@ -14,4 +16,13 @@ type UpdatePayload struct {
 	Status    AssetStatus
 	OldStatus AssetStatus
 	AuthorID  string
+}
+
+type DeletePayload struct {
+	IDs []string
+}
+
+type DeleteReaport struct {
+	id  string
+	err error
 }

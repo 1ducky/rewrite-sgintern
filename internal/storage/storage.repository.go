@@ -14,6 +14,7 @@ type LocalStorage struct {
 }
 
 func NewLocalStorage(conf config.StorageConfig) (assets.RepositoryContract, error) {
+	// Initial Folder
 	dirs := []string{
 		conf.StorageRoot,
 		path.Join(conf.StorageRoot, conf.StoragePathTemp),

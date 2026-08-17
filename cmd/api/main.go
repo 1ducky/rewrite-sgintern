@@ -16,7 +16,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	// init repo asset
+	assetRepo := assets.NewRepository()
 
-	assetSetvice := assets.NewService(LocalStorageRepo)
-	_ = assetSetvice
+	assetUsecase := assets.NewUsecase(appConfig.StorageConfig, LocalStorageRepo, assetRepo)
+	_ = assetUsecase
 }

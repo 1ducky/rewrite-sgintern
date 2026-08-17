@@ -7,13 +7,13 @@ import (
 
 func (l *Usecase) resolvePath(dir AssetCategory, fileName string) (string, error) {
 	switch dir {
-	case "upload":
+	case CategoryPost:
 		return filepath.Join(l.conf.StoragePathUpload, fileName), nil
-	case "temp":
+	case CategoryTemp:
 		return filepath.Join(l.conf.StoragePathTemp, fileName), nil
-	case "avatar":
+	case CategoryProfile:
 		return filepath.Join(l.conf.StoragePathAvatar, fileName), nil
-	case "document":
+	case CategoryDocument:
 		return filepath.Join(l.conf.StoragePathDocument, fileName), nil
 	default:
 		return "", ErrStorageUnavailable

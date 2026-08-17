@@ -17,6 +17,8 @@ var (
 	ErrStorageUnavailable = errors.New("storage backend unavailable")
 	ErrPermissionDenied   = errors.New("permission denied")
 	ErrUnauthorized       = errors.New("unauthorized")
+	ErrAssetFailedDelete  = errors.New("asset failed delete")
+	ErrAssetInvalidPath   = errors.New("asset invalid path")
 )
 
 type CodeErr string
@@ -33,6 +35,8 @@ const (
 	CodeUnauthorized       CodeErr = "UNAUTHORIZED"
 	CodeAssetInvalidMime   CodeErr = "ASSET_INVALID_MIME"
 	CodeInternal           CodeErr = "INTERNAL_ERROR"
+	CodeAssetFailedDelete  CodeErr = "ASSET_FAILED_DELETE"
+	CodeAssetInvalidPath   CodeErr = "ASSET_INVALID_PATH"
 )
 
 type entry struct {
@@ -52,6 +56,8 @@ var MapErr = []entry{
 	{ErrStorageUnavailable, CodeStorageUnavailable, http.StatusServiceUnavailable, "Layanan penyimpanan sedang tidak tersedia"},
 	{ErrPermissionDenied, CodePermissionDenied, http.StatusForbidden, "Anda tidak memiliki akses"},
 	{ErrUnauthorized, CodeUnauthorized, http.StatusUnauthorized, "Anda belum terautentikasi"},
+	{ErrAssetFailedDelete, CodeAssetFailedDelete, http.StatusInternalServerError, "Gagal menghapus asset"},
+	{ErrAssetInvalidPath, CodeAssetInvalidPath, http.StatusBadRequest, "Asset path tidak valid"},
 }
 
 type ErrorAssets struct {

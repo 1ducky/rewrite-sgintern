@@ -19,6 +19,7 @@ const (
 	MimeTextCSV   Mime = "text/csv"
 	MimeTextPlain Mime = "text/plain"
 )
+
 const (
 	//  Image Mime Allowed
 	ExtJpg  Ext = ".jpg"
@@ -31,24 +32,24 @@ const (
 	ExtTextPlain Ext = ".txt"
 )
 
-var AllowedImageType = map[string]TypeResolver{
-	".jpg":  TypeResolver{Mime: MimeImageJPEG, Ext: ExtJpg},
-	".png":  TypeResolver{Mime: MimeImagePNG, Ext: ExtPng},
-	".gif":  TypeResolver{Mime: MimeImageGIF, Ext: ExtGif},
-	".webp": TypeResolver{Mime: MimeImageWebP, Ext: ExtWebp},
+var AllowedImageType = map[Mime]TypeResolver{
+	MimeImageJPEG: {Mime: MimeImageJPEG, Ext: ExtJpg},
+	MimeImagePNG:  {Mime: MimeImagePNG, Ext: ExtPng},
+	MimeImageGIF:  {Mime: MimeImageGIF, Ext: ExtGif},
+	MimeImageWebP: {Mime: MimeImageWebP, Ext: ExtWebp},
 }
 
-var AllowedTextType = map[string]TypeResolver{
-	".csv": TypeResolver{Mime: MimeTextCSV, Ext: ExtCsv},
-	".txt": TypeResolver{Mime: MimeTextPlain, Ext: ExtTextPlain},
+var AllowedTextType = map[Mime]TypeResolver{
+	MimeTextCSV:   {Mime: MimeTextCSV, Ext: ExtCsv},
+	MimeTextPlain: {Mime: MimeTextPlain, Ext: ExtTextPlain},
 }
 
-func isAllowedext(ext string) (TypeResolver, bool) {
+func isAllowedExt(mime Mime) (TypeResolver, bool) {
 
-	if mime, ok := AllowedImageType[ext]; ok {
+	if mime, ok := AllowedImageType[mime]; ok {
 		return mime, true
 	}
-	if mime, ok := AllowedTextType[ext]; ok {
+	if mime, ok := AllowedTextType[mime]; ok {
 		return mime, true
 	}
 	return TypeResolver{}, false
