@@ -5,6 +5,7 @@ import (
 	"RewriteProject/internal/config"
 	"context"
 	"io"
+	"log"
 	"os"
 	"path"
 )
@@ -44,19 +45,21 @@ func NewLocalStorage(conf config.StorageConfig) (assets.RepositoryContract, erro
 	return &LocalStorage{conf: conf}, nil
 }
 
-func (l *LocalStorage) Write(ctx context.Context, reader io.Reader, path string) (assets.StoreResult, error) {
-	dst, err := os.Create(path)
+func (l *LocalStorage) Write(ctx context.Context, reader io.Reader, destination string) (assets.StoreResult, error) {
+	dst, err := os.Create(path.Join(l.conf.StorageRoot, destination))
 	if err != nil {
+		log.Print(err)
 		return assets.StoreResult{}, assets.ErrAssetFailedCreate
 	}
 	defer dst.Close()
 
 	size, err := io.Copy(dst, reader)
 	if err != nil {
+		log.Print(err)
 		return assets.StoreResult{}, assets.ErrAssetFailedCreate
 	}
 
-	return assets.StoreResult{Path: path, Size: size}, nil
+	return assets.StoreResult{Path: destination, Size: size}, nil
 }
 
 func (l *LocalStorage) Delete(ctx context.Context, path string) error {

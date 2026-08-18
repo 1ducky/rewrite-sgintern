@@ -23,23 +23,23 @@ type AssetPolicy struct {
 
 var PolicyAsset = map[AssetCategory]AssetPolicy{
 	CategoryProfile: {
-		Folder:      "profile",
-		AllowedMime: []Mime{MimeImageJPEG, MimeImagePNG},
+		Folder:      string(CategoryProfile),
+		AllowedMime: []Mime{MimeImageJPEG, MimeImagePNG, MimeImageGIF, MimeImageWebP},
 		MaxSize:     1024 * 1024 * 5,
 	},
 	CategoryDocument: {
-		Folder:      "document",
-		AllowedMime: []Mime{MimeImageJPEG, MimeImagePNG},
+		Folder:      string(CategoryDocument),
+		AllowedMime: []Mime{MimeDocPDF, MimeDocDocx, MimeDocXlsx, MimeDocPptx, MimeDocDoc},
 		MaxSize:     1024 * 1024 * 10,
 	},
 	CategoryPost: {
-		Folder:      "post",
-		AllowedMime: []Mime{MimeImageJPEG, MimeImagePNG},
+		Folder:      string(CategoryPost),
+		AllowedMime: []Mime{MimeImageJPEG, MimeImagePNG, MimeImageGIF, MimeImageWebP},
 		MaxSize:     1024 * 1024 * 10,
 	},
 	CategoryTemp: {
-		Folder:      "temp",
-		AllowedMime: []Mime{MimeImageJPEG, MimeImagePNG},
+		Folder:      string(CategoryTemp),
+		AllowedMime: []Mime{MimeImageJPEG, MimeImagePNG, MimeImageGIF, MimeImageWebP},
 		MaxSize:     1024 * 1024 * 1,
 	},
 }

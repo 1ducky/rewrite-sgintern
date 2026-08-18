@@ -15,9 +15,20 @@ const (
 	MimeImageGIF  Mime = "image/gif"
 	MimeImageWebP Mime = "image/webp"
 
-	// Text Mime Allowed
-	MimeTextCSV   Mime = "text/csv"
-	MimeTextPlain Mime = "text/plain"
+	// Video
+	MimeVideoMP4  Mime = "video/mp4"
+	MimeVideoMOV  Mime = "video/quicktime"
+	MimeVideoAVI  Mime = "video/x-msvideo"
+	MimeVideoMKV  Mime = "video/x-matroska"
+	MimeVideoWebM Mime = "video/webm"
+	MimeVideoFLV  Mime = "video/x-flv"
+
+	// Document
+	MimeDocPDF  Mime = "application/pdf"
+	MimeDocDocx Mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+	MimeDocXlsx Mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+	MimeDocPptx Mime = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+	MimeDocDoc  Mime = "application/msword"
 )
 
 const (
@@ -27,9 +38,20 @@ const (
 	ExtGif  Ext = ".gif"
 	ExtWebp Ext = ".webp"
 
-	// Text Ext Allowed
-	ExtCsv       Ext = ".csv"
-	ExtTextPlain Ext = ".txt"
+	// Video Ext
+	ExtMp4  Ext = ".mp4"
+	ExtMov  Ext = ".mov"
+	ExtAvi  Ext = ".avi"
+	ExtMkv  Ext = ".mkv"
+	ExtWebm Ext = ".webm"
+	ExtFlv  Ext = ".flv"
+
+	// Document Ext
+	ExtPdf  Ext = ".pdf"
+	ExtDocx Ext = ".docx"
+	ExtXlsx Ext = ".xlsx"
+	ExtPptx Ext = ".pptx"
+	ExtDoc  Ext = ".doc"
 )
 
 var AllowedImageType = map[Mime]TypeResolver{
@@ -40,8 +62,20 @@ var AllowedImageType = map[Mime]TypeResolver{
 }
 
 var AllowedTextType = map[Mime]TypeResolver{
-	MimeTextCSV:   {Mime: MimeTextCSV, Ext: ExtCsv},
-	MimeTextPlain: {Mime: MimeTextPlain, Ext: ExtTextPlain},
+	MimeDocDoc:  {Mime: MimeDocDoc, Ext: ExtDoc},
+	MimeDocDocx: {Mime: MimeDocDocx, Ext: ExtDocx},
+	MimeDocPptx: {Mime: MimeDocPptx, Ext: ExtPptx},
+	MimeDocXlsx: {Mime: MimeDocXlsx, Ext: ExtXlsx},
+	MimeDocPDF:  {Mime: MimeDocPDF, Ext: ExtPdf},
+}
+
+var AllowedVideoType = map[Mime]TypeResolver{
+	MimeVideoMP4:  {Mime: MimeVideoMP4, Ext: ExtMp4},
+	MimeVideoMOV:  {Mime: MimeVideoMOV, Ext: ExtMov},
+	MimeVideoAVI:  {Mime: MimeVideoAVI, Ext: ExtAvi},
+	MimeVideoMKV:  {Mime: MimeVideoMKV, Ext: ExtMkv},
+	MimeVideoWebM: {Mime: MimeVideoWebM, Ext: ExtWebm},
+	MimeVideoFLV:  {Mime: MimeVideoFLV, Ext: ExtFlv},
 }
 
 func isAllowedExt(mime Mime) (TypeResolver, bool) {
@@ -50,6 +84,9 @@ func isAllowedExt(mime Mime) (TypeResolver, bool) {
 		return mime, true
 	}
 	if mime, ok := AllowedTextType[mime]; ok {
+		return mime, true
+	}
+	if mime, ok := AllowedVideoType[mime]; ok {
 		return mime, true
 	}
 	return TypeResolver{}, false
