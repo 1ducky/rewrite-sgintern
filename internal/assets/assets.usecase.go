@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"log"
 
 	"github.com/google/uuid"
 )
@@ -24,45 +23,33 @@ func NewUsecase(config config.StorageConfig, StorageRepo RepositoryContract, Ass
 }
 
 func (u *Usecase) Upload(ctx context.Context, r io.Reader, upload UploadPolicy) (AssetMetaData, error) {
-	log.Print("detect mime")
+	policy := PolicyAsset[upload.Category]
+	maxSize := min(policy.MaxSize, upload.MaxSize)
 	mime, newR, err := reader.DetectMime(r)
 	if err != nil {
 		return AssetMetaData{}, err
 	}
-	log.Print("limit reader")
-	limitedR := u.limitReader(newR, upload.MaxSize)
-	log.Print("allowed type buffer")
-	policyCategory := PolicyAsset[upload.Category]
-	log.Print("policyCategory", policyCategory)
+	limitedR := u.limitReader(newR, maxSize)
 	typeBuffer, ok := isAllowedExt(Mime(mime))
-	log.Print("typeBuffer", typeBuffer)
-	if !ok || !isAllowedMimeByPolicy(policyCategory, typeBuffer.Mime) {
+	if !ok || !isAllowedMimeByPolicy(policy, typeBuffer.Mime) {
 		return AssetMetaData{}, ErrAssetInvalidMime
 	}
-	log.Print("generate name")
 	name := upload.UserID + "_" + uuid.NewString() + string(typeBuffer.Ext)
-	log.Print("fullpath", name)
-	log.Print("resolve path")
 	fullpath, err := u.resolvePath(upload.Category, name)
 	if err != nil {
 		return AssetMetaData{}, err
 	}
-
-	log.Print("record metadata")
 	metadata, err := u.AssetRepo.Record(ctx, RecordPayload{Status: AssetStatusPending, FileKey: fullpath, Filename: name, Mime: typeBuffer.Mime, Path: fullpath, AuthorID: upload.UserID, Category: upload.Category})
 	if err != nil {
 		return AssetMetaData{}, err
 	}
-	log.Print("storage write")
 	res, err := u.StorageRepo.Write(ctx, limitedR, fullpath)
 	if err != nil {
 		return AssetMetaData{}, err
 	}
-	log.Print("check size")
-	if res.Size > upload.MaxSize {
+	if res.Size > maxSize {
 		return AssetMetaData{}, ErrAssetTooLarge
 	}
-	log.Print("update metadata")
 	metadata, err = u.AssetRepo.Update(ctx, UpdatePayload{
 		Id:        metadata.ID,
 		Size:      res.Size,
@@ -73,6 +60,7 @@ func (u *Usecase) Upload(ctx context.Context, r io.Reader, upload UploadPolicy) 
 	if err != nil {
 		return AssetMetaData{}, ErrAssetFailedCreate
 	}
+	metadata.Path = res.Path
 
 	return metadata, nil
 }

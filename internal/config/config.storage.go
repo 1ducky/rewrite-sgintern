@@ -6,6 +6,7 @@ type StorageConfig struct {
 	StoragePathTemp     string
 	StoragePathAvatar   string
 	StoragePathDocument string
+	StoragePathVideo    string
 }
 
 func LoadStorageConfig() StorageConfig {
@@ -15,5 +16,6 @@ func LoadStorageConfig() StorageConfig {
 		StoragePathTemp:     getEnv("STORAGE_PATH_TEMP", "tmp"),
 		StoragePathAvatar:   getEnv("STORAGE_PATH_AVATAR", "avatars"),
 		StoragePathDocument: getEnv("STORAGE_PATH_DOCUMENT", "documents"),
+		StoragePathVideo:    getEnv("STORAGE_PATH_VIDEO", "video"),
 	}
 }

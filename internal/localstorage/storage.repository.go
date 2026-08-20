@@ -1,11 +1,10 @@
-package storage
+package localstorage
 
 import (
 	"RewriteProject/internal/assets"
 	"RewriteProject/internal/config"
 	"context"
 	"io"
-	"log"
 	"os"
 	"path"
 )
@@ -22,6 +21,7 @@ func NewLocalStorage(conf config.StorageConfig) (assets.RepositoryContract, erro
 		path.Join(conf.StorageRoot, conf.StoragePathUpload),
 		path.Join(conf.StorageRoot, conf.StoragePathDocument),
 		path.Join(conf.StorageRoot, conf.StoragePathAvatar),
+		path.Join(conf.StorageRoot, conf.StoragePathVideo),
 	}
 	_AttemtDir := 10
 
@@ -46,24 +46,34 @@ func NewLocalStorage(conf config.StorageConfig) (assets.RepositoryContract, erro
 }
 
 func (l *LocalStorage) Write(ctx context.Context, reader io.Reader, destination string) (assets.StoreResult, error) {
-	dst, err := os.Create(path.Join(l.conf.StorageRoot, destination))
+	finalDestination, err := l.resolveFilePath(destination)
 	if err != nil {
-		log.Print(err)
+		return assets.StoreResult{}, err
+	}
+	dst, err := os.Create(path.Join(finalDestination))
+	if err != nil {
 		return assets.StoreResult{}, assets.ErrAssetFailedCreate
 	}
 	defer dst.Close()
 
 	size, err := io.Copy(dst, reader)
-	if err != nil {
-		log.Print(err)
+	if err != nil || size == 0 {
+		dst.Close()
+		if delErr := l.Delete(ctx, destination); delErr != nil {
+			return assets.StoreResult{}, delErr
+		}
 		return assets.StoreResult{}, assets.ErrAssetFailedCreate
 	}
 
-	return assets.StoreResult{Path: destination, Size: size}, nil
+	return assets.StoreResult{Path: finalDestination, Size: size}, nil
 }
 
-func (l *LocalStorage) Delete(ctx context.Context, path string) error {
-	err := os.Remove(path)
+func (l *LocalStorage) Delete(ctx context.Context, destination string) error {
+	finalDestination, err := l.resolveFilePath(destination)
+	if err != nil {
+		return err
+	}
+	err = os.Remove(finalDestination)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return assets.ErrAssetNotFound
@@ -73,8 +83,19 @@ func (l *LocalStorage) Delete(ctx context.Context, path string) error {
 	return nil
 }
 
-func (l *LocalStorage) Read(ctx context.Context, path string) (io.ReadCloser, error) {
-	f, err := os.Open(path)
+func (l *LocalStorage) Read(ctx context.Context, destination string) (io.ReadCloser, error) {
+	finalDestination, err := l.resolveFilePath(destination)
+	if err != nil {
+		return nil, err
+	}
+	info, err := os.Stat(finalDestination)
+	if err != nil && os.IsNotExist(err) {
+		return nil, err
+	}
+	if err == nil && info.IsDir() {
+		return nil, assets.ErrAssetInvalidPath
+	}
+	f, err := os.Open(finalDestination)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, assets.ErrAssetNotFound

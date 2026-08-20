@@ -15,6 +15,8 @@ func (l *Usecase) resolvePath(dir AssetCategory, fileName string) (string, error
 		return filepath.Join(l.conf.StoragePathAvatar, fileName), nil
 	case CategoryDocument:
 		return filepath.Join(l.conf.StoragePathDocument, fileName), nil
+	case CategoryVideo:
+		return filepath.Join(l.conf.StoragePathVideo, fileName), nil
 	default:
 		return "", ErrStorageUnavailable
 	}

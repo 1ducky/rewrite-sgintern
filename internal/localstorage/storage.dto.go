@@ -1,4 +1,4 @@
-package storage
+package localstorage
 
 type StoreResult struct {
 	Filename string

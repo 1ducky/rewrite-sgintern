@@ -3,7 +3,7 @@ package main
 import (
 	"RewriteProject/internal/assets"
 	"RewriteProject/internal/config"
-	"RewriteProject/internal/storage"
+	storage "RewriteProject/internal/localstorage"
 	"context"
 	"fmt"
 	"log"
@@ -28,7 +28,7 @@ func main() {
 	assetUsecase := assets.NewUsecase(appConfig.StorageConfig, LocalStorageRepo, assetRepo)
 	_ = assetUsecase
 
-	file, err := os.Open("./images1.jpg")
+	file, err := os.Open("./0428.gif")
 	if err != nil {
 		fmt.Printf("Error opening file: %v\n", err)
 		return
@@ -37,6 +37,6 @@ func main() {
 	// 2. Ensure the file is closed to prevent resource leaks
 	defer file.Close()
 
-	res, err := assetUsecase.Upload(context.Background(), file, assets.UploadPolicy{Category: assets.CategoryProfile, UserID: "asdad", MaxSize: 1 << 20})
+	res, err := assetUsecase.Upload(context.Background(), file, assets.UploadPolicy{Category: assets.CategoryProfile, UserID: "asdad", MaxSize: 10 << 20}) //10 mb
 	log.Print(res, err)
 }

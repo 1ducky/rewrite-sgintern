@@ -9,10 +9,11 @@ type UploadPolicy struct {
 type AssetCategory string
 
 const (
-	CategoryProfile  AssetCategory = "profile"
+	CategoryProfile  AssetCategory = "avatars"
 	CategoryDocument AssetCategory = "document"
 	CategoryPost     AssetCategory = "post"
 	CategoryTemp     AssetCategory = "temp"
+	CategoryVideo    AssetCategory = "video"
 )
 
 type AssetPolicy struct {
@@ -41,5 +42,10 @@ var PolicyAsset = map[AssetCategory]AssetPolicy{
 		Folder:      string(CategoryTemp),
 		AllowedMime: []Mime{MimeImageJPEG, MimeImagePNG, MimeImageGIF, MimeImageWebP},
 		MaxSize:     1024 * 1024 * 1,
+	},
+	CategoryVideo: {
+		Folder:      string(CategoryVideo),
+		AllowedMime: []Mime{MimeVideoMP4, MimeVideoMOV, MimeVideoAVI, MimeVideoMKV, MimeVideoWebM, MimeVideoFLV},
+		MaxSize:     1024 * 1024 * 100,
 	},
 }
