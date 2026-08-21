@@ -24,19 +24,37 @@ const (
 type WriteTestCase struct {
 	Name        string
 	Usecase     UsecaseContract
-	Expeted     bool
+	ExpectedErr error
 	Destination string
 	Reader      io.Reader
 }
 
 func createWriteTestUsecase(conf config.StorageConfig) []WriteTestCase {
+	content := uuid.NewString() + "-_" + ".txt"
 	return []WriteTestCase{
-		{Name: "VALID_WRITE_TEST", Usecase: Write, Expeted: true, Destination: path.Join(conf.StoragePathTemp, uuid.NewString()+"-"+".txt"), Reader: strings.NewReader("hello world")},
-		{Name: "EMPTY_CONTENT_WRITE_TEST", Usecase: Write, Expeted: false, Destination: path.Join(conf.StoragePathTemp, uuid.NewString()+"-"+".txt"), Reader: strings.NewReader("")},
-		{Name: "EMPTY_DESTINATION_WRITE_TEST", Usecase: Write, Expeted: false, Destination: "", Reader: strings.NewReader("hello world")},
-		{Name: "INVALID_DESTINATION_WRITE_TEST", Usecase: Write, Expeted: false, Destination: path.Join("adas", uuid.NewString()+"-"+".txt"), Reader: strings.NewReader("hello world")},
-		{Name: "ERROR_READER_TEST", Usecase: Write, Expeted: false, Destination: path.Join(conf.StoragePathTemp, uuid.NewString()+"-"+".txt"), Reader: iotest.ErrReader(assets.ErrAssetFailedCreate)},
-		{Name: "MULTIPLE_INVALID_DESTINATION_WRITE_TEST", Usecase: Write, Expeted: false, Destination: path.Join("adas", "asdsad", uuid.NewString()+"-"+".txt"), Reader: strings.NewReader("hello world")},
+		{Name: "VALID_WRITE_TEST", Usecase: Write, ExpectedErr: nil, Destination: path.Join(conf.StoragePathTemp, "1_"+content), Reader: strings.NewReader("hello world")},
+		{Name: "VALID_READ_TEST", Usecase: Read, ExpectedErr: nil, Destination: path.Join(conf.StoragePathTemp, "1_"+content), Reader: strings.NewReader("hello world")},
+		{Name: "VALID_DELETE_TEST", Usecase: Delete, ExpectedErr: nil, Destination: path.Join(conf.StoragePathTemp, "1_"+content), Reader: strings.NewReader("hello world")},
+
+		{Name: "EMPTY_CONTENT_WRITE_TEST", Usecase: Write, ExpectedErr: assets.ErrAssetFailedCreate, Destination: path.Join(conf.StoragePathTemp, "2_"+content), Reader: strings.NewReader("")},
+		{Name: "EMPTY_CONTENT_READ_TEST", Usecase: Read, ExpectedErr: assets.ErrAssetNotFound, Destination: path.Join(conf.StoragePathTemp, "2_"+content), Reader: strings.NewReader("")},
+		{Name: "EMPTY_CONTENT_DELETE_TEST", Usecase: Delete, ExpectedErr: assets.ErrAssetNotFound, Destination: path.Join(conf.StoragePathTemp, "2_"+content), Reader: strings.NewReader("")},
+
+		{Name: "EMPTY_DESTINATION_WRITE_TEST", Usecase: Write, ExpectedErr: assets.ErrAssetInvalidPath, Destination: "", Reader: strings.NewReader("hello world")},
+		{Name: "EMPTY_DESTINATION_READ_TEST", Usecase: Read, ExpectedErr: assets.ErrAssetInvalidPath, Destination: "", Reader: strings.NewReader("hello world")},
+		{Name: "EMPTY_DESTINATION_DELETE_TEST", Usecase: Delete, ExpectedErr: assets.ErrAssetInvalidPath, Destination: "", Reader: strings.NewReader("hello world")},
+
+		{Name: "INVALID_DESTINATION_WRITE_TEST", Usecase: Write, ExpectedErr: assets.ErrAssetInvalidPath, Destination: path.Join("adas", "4_"+content), Reader: strings.NewReader("hello world")},
+		{Name: "INVALID_DESTINATION_READ_TEST", Usecase: Read, ExpectedErr: assets.ErrAssetInvalidPath, Destination: path.Join("adas", "4_"+content), Reader: strings.NewReader("hello world")},
+		{Name: "INVALID_DESTINATION_DELETE_TEST", Usecase: Delete, ExpectedErr: assets.ErrAssetInvalidPath, Destination: path.Join("adas", "4_"+content), Reader: strings.NewReader("hello world")},
+
+		{Name: "ERROR_READER_WRITE_TEST", Usecase: Write, ExpectedErr: assets.ErrAssetFailedCreate, Destination: path.Join(conf.StoragePathTemp, "5_"+content), Reader: iotest.ErrReader(assets.ErrAssetFailedCreate)},
+		{Name: "ERROR_READER_READ_TEST", Usecase: Read, ExpectedErr: assets.ErrAssetNotFound, Destination: path.Join(conf.StoragePathTemp, "5_"+content), Reader: iotest.ErrReader(assets.ErrAssetFailedCreate)},
+		{Name: "ERROR_READER_DELETE_TEST", Usecase: Delete, ExpectedErr: assets.ErrAssetNotFound, Destination: path.Join(conf.StoragePathTemp, "5_"+content), Reader: iotest.ErrReader(assets.ErrAssetFailedCreate)},
+
+		{Name: "MULTIPLE_INVALID_DESTINATION_WRITE_TEST", Usecase: Write, ExpectedErr: assets.ErrAssetInvalidPath, Destination: path.Join("adas", "asdsad", "6_"+content), Reader: strings.NewReader("hello world")},
+		{Name: "MULTIPLE_INVALID_DESTINATION_READ_TEST", Usecase: Read, ExpectedErr: assets.ErrAssetInvalidPath, Destination: path.Join("adas", "asdsad", "6_"+content), Reader: strings.NewReader("hello world")},
+		{Name: "MULTIPLE_INVALID_DESTINATION_DELETE_TEST", Usecase: Delete, ExpectedErr: assets.ErrAssetInvalidPath, Destination: path.Join("adas", "asdsad", "6_"+content), Reader: strings.NewReader("hello world")},
 	}
 }
 
@@ -73,31 +91,34 @@ func TestWriteReadDelete(t *testing.T) {
 	uc := createWriteTestUsecase(conf)
 
 	for _, u := range uc {
-		t.Run(u.Name+"_"+string(Write), func(t *testing.T) {
-			_, writeErr := localStorage.Write(t.Context(), u.Reader, u.Destination)
-			gotOK := writeErr == nil
-			if gotOK != u.Expeted {
-				t.Fatalf("Write: expected ok=%v, got err=%v", u.Expeted, writeErr)
-			}
-		})
+		switch u.Usecase {
+		case Write:
+			t.Run(u.Name, func(t *testing.T) {
+				_, writeErr := localStorage.Write(t.Context(), u.Reader, u.Destination)
+				if writeErr != u.ExpectedErr {
+					t.Fatalf("Write: expected =%v, got err=%v", u.ExpectedErr, writeErr)
+				}
+			})
+		case Read:
+			t.Run(u.Name, func(t *testing.T) {
+				f, readErr := localStorage.Read(t.Context(), u.Destination)
 
-		t.Run(u.Name+"_"+string(Read), func(t *testing.T) {
-			f, readErr := localStorage.Read(t.Context(), u.Destination)
-			gotOK := readErr == nil
-			if gotOK != u.Expeted {
-				t.Fatalf("Read: expected ok=%v, got err=%v", u.Expeted, readErr)
-			}
-			if f != nil {
-				defer f.Close()
-			}
-		})
-		t.Run(u.Name+"_"+string(Delete), func(t *testing.T) {
-			delErr := localStorage.Delete(t.Context(), u.Destination)
-			gotOK := delErr == nil
-			if gotOK != u.Expeted {
-				t.Fatalf("Delete: expected ok=%v, got err=%v", u.Expeted, delErr)
-			}
-		})
+				if readErr != u.ExpectedErr {
+					t.Fatalf("Read: expected =%v, got err=%v", u.ExpectedErr, readErr)
+				}
+				if f != nil {
+					defer f.Close()
+				}
+			})
+		case Delete:
+			t.Run(u.Name, func(t *testing.T) {
+				delErr := localStorage.Delete(t.Context(), u.Destination)
+
+				if delErr != u.ExpectedErr {
+					t.Fatalf("Delete: expected =%v, got err=%v", u.ExpectedErr, delErr)
+				}
+			})
+		}
 	}
 
 }

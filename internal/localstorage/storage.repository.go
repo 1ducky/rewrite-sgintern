@@ -71,7 +71,7 @@ func (l *LocalStorage) Write(ctx context.Context, reader io.Reader, destination 
 func (l *LocalStorage) Delete(ctx context.Context, destination string) error {
 	finalDestination, err := l.resolveFilePath(destination)
 	if err != nil {
-		return err
+		return assets.ErrAssetInvalidPath
 	}
 	err = os.Remove(finalDestination)
 	if err != nil {
@@ -90,7 +90,7 @@ func (l *LocalStorage) Read(ctx context.Context, destination string) (io.ReadClo
 	}
 	info, err := os.Stat(finalDestination)
 	if err != nil && os.IsNotExist(err) {
-		return nil, err
+		return nil, assets.ErrAssetNotFound
 	}
 	if err == nil && info.IsDir() {
 		return nil, assets.ErrAssetInvalidPath
@@ -103,4 +103,23 @@ func (l *LocalStorage) Read(ctx context.Context, destination string) (io.ReadClo
 		return nil, err
 	}
 	return f, nil
+}
+
+func (l *LocalStorage) Move(ctx context.Context, oldDestination, newDestination string) (assets.StoreResult, error) {
+	finalOldDestination, err := l.resolveFilePath(oldDestination)
+	if err != nil {
+		return assets.StoreResult{}, err
+	}
+	finalNewDestination, err := l.resolveFilePath(newDestination)
+	if err != nil {
+		return assets.StoreResult{}, err
+	}
+	err = os.Rename(finalOldDestination, finalNewDestination)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return assets.StoreResult{}, assets.ErrAssetNotFound
+		}
+		return assets.StoreResult{}, err
+	}
+	return assets.StoreResult{Path: finalNewDestination}, nil
 }
