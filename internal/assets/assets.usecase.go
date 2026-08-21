@@ -39,7 +39,7 @@ func (u *Usecase) Upload(ctx context.Context, r io.Reader, upload UploadPolicy) 
 	if err != nil {
 		return AssetMetaData{}, err
 	}
-	metadata, err := u.AssetRepo.Record(ctx, RecordPayload{Status: AssetStatusPending, FileKey: fullpath, Filename: name, Mime: typeBuffer.Mime, Path: fullpath, AuthorID: upload.UserID, Category: upload.Category})
+	metadata, err := u.AssetRepo.Record(ctx, RecordPayload{Status: AssetStatusPending, FileKey: fullpath, Filename: name, Mime: typeBuffer.Mime, AuthorID: upload.UserID, Category: upload.Category})
 	if err != nil {
 		return AssetMetaData{}, err
 	}
@@ -60,7 +60,7 @@ func (u *Usecase) Upload(ctx context.Context, r io.Reader, upload UploadPolicy) 
 	if err != nil {
 		return AssetMetaData{}, ErrAssetFailedCreate
 	}
-	metadata.Path = res.Path
+	metadata.FileKey = res.FileKey
 
 	return metadata, nil
 }
@@ -82,10 +82,10 @@ func (u *Usecase) Delete(ctx context.Context, payload DeletePayload) error {
 	jobs := pipeline.ProduceJob(ctx, meta, workerCount*2)
 	reports := pool.Run(ctx, jobs, func(ctx context.Context, amd AssetMetaData) DeleteReaport {
 
-		if amd.Path == "" {
+		if amd.FileKey == "" {
 			return DeleteReaport{id: amd.ID, err: ErrAssetInvalidPath}
 		}
-		delErr := u.StorageRepo.Delete(ctx, amd.Path)
+		delErr := u.StorageRepo.Delete(ctx, amd.FileKey)
 		if delErr != nil {
 			return DeleteReaport{id: amd.ID, err: delErr}
 		}

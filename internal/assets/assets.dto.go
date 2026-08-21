@@ -5,7 +5,6 @@ type RecordPayload struct {
 	Status   AssetStatus
 	Filename string
 	Mime     Mime
-	Path     string
 	AuthorID string
 	Category AssetCategory
 }
@@ -25,4 +24,9 @@ type DeletePayload struct {
 type DeleteReaport struct {
 	id  string
 	err error
+}
+
+type StoreResult struct {
+	FileKey string
+	Size    int64
 }

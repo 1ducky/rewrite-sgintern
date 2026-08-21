@@ -5,7 +5,7 @@ import (
 )
 
 type Repo struct {
-	// contract contracts.StorageRepositoryContract
+	assets []AssetMetaData
 }
 
 func NewRepository() AssetRepository {

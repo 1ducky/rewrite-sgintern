@@ -65,7 +65,7 @@ func (l *LocalStorage) Write(ctx context.Context, reader io.Reader, destination 
 		return assets.StoreResult{}, assets.ErrAssetFailedCreate
 	}
 
-	return assets.StoreResult{Path: finalDestination, Size: size}, nil
+	return assets.StoreResult{FileKey: finalDestination, Size: size}, nil
 }
 
 func (l *LocalStorage) Delete(ctx context.Context, destination string) error {
@@ -121,5 +121,5 @@ func (l *LocalStorage) Move(ctx context.Context, oldDestination, newDestination 
 		}
 		return assets.StoreResult{}, err
 	}
-	return assets.StoreResult{Path: finalNewDestination}, nil
+	return assets.StoreResult{FileKey: finalNewDestination}, nil
 }

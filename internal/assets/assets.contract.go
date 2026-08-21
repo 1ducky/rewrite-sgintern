@@ -11,11 +11,6 @@ type RepositoryContract interface {
 	Read(ctx context.Context, path string) (io.ReadCloser, error)
 }
 
-type StoreResult struct {
-	Path string
-	Size int64
-}
-
 type UsecaseContract interface {
 	Upload(ctx context.Context, reader io.Reader, upload UploadPolicy) (AssetMetaData, error)
 	Delete(ctx context.Context, payload DeletePayload) error
