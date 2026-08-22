@@ -35,3 +35,7 @@ func (r *Repo) ReadByParentID(ctx context.Context, parentID []string) ([]AssetMe
 func (r *Repo) LinkingAsset(ctx context.Context, assetID []string, parentID string) error {
 	return nil
 }
+
+func (r *Repo) ReleaseByParentID(ctx context.Context, parentIDs []string) error {
+	return nil
+}

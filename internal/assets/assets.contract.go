@@ -14,9 +14,10 @@ type RepositoryContract interface {
 type UsecaseContract interface {
 	Upload(ctx context.Context, reader io.Reader, upload UploadPolicy) (AssetMetaData, error)
 	Delete(ctx context.Context, payload DeletePayload) error
-	Read(ctx context.Context, url string) (AssetMetaData, error)
+	Read(ctx context.Context, url string) (io.ReadCloser, error)
 	LinkingAsset(ctx context.Context, assetID []string, parentID string) error
 	ReadByParentID(ctx context.Context, parentID []string) ([]AssetMetaData, error)
+	ReleaseByParentID(ctx context.Context, parentIDs []string) error
 }
 
 type AssetRepository interface {
@@ -26,4 +27,5 @@ type AssetRepository interface {
 	GetByIDs(ctx context.Context, id []string) ([]AssetMetaData, error)
 	ReadByParentID(ctx context.Context, parentID []string) ([]AssetMetaData, error)
 	LinkingAsset(ctx context.Context, assetID []string, parentID string) error
+	ReleaseByParentID(ctx context.Context, parentIDs []string) error
 }

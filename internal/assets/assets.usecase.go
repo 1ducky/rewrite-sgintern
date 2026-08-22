@@ -47,6 +47,7 @@ func (u *Usecase) Upload(ctx context.Context, r io.Reader, upload UploadPolicy) 
 	if err != nil {
 		return AssetMetaData{}, err
 	}
+	// log.Printf("res size %d , max size %d, user:%s", res.Size, maxSize, upload.UserID)
 	if res.Size > maxSize {
 		return AssetMetaData{}, ErrAssetTooLarge
 	}
@@ -60,7 +61,6 @@ func (u *Usecase) Upload(ctx context.Context, r io.Reader, upload UploadPolicy) 
 	if err != nil {
 		return AssetMetaData{}, ErrAssetFailedCreate
 	}
-	metadata.FileKey = res.FileKey
 
 	return metadata, nil
 }
@@ -70,16 +70,22 @@ func (u *Usecase) Delete(ctx context.Context, payload DeletePayload) error {
 	if err != nil {
 		return err
 	}
-	if len(meta) == 0 {
+	validMeta := utils.MapField(meta, func(amd AssetMetaData) (AssetMetaData, bool) {
+		if amd.Status == AssetStatusDeleted || amd.ParentID != "" {
+			return amd, false
+		}
+		return amd, true
+	})
+	if len(validMeta) == 0 {
 		return ErrAssetNotFound
 	}
-	workerCount := pipeline.CalculateWorkerCount(len(meta), pipeline.WorkerPoolConfig{
+	workerCount := pipeline.CalculateWorkerCount(len(validMeta), pipeline.WorkerPoolConfig{
 		MaxWorkers:    8,
 		MinWorkers:    2,
 		JobsPerWorker: 5,
 	})
 	pool := pipeline.NewWorkerPool[AssetMetaData, DeleteReaport](workerCount)
-	jobs := pipeline.ProduceJob(ctx, meta, workerCount*2)
+	jobs := pipeline.ProduceJob(ctx, validMeta, workerCount*2)
 	reports := pool.Run(ctx, jobs, func(ctx context.Context, amd AssetMetaData) DeleteReaport {
 
 		if amd.FileKey == "" {
@@ -105,20 +111,40 @@ func (u *Usecase) Delete(ctx context.Context, payload DeletePayload) error {
 	}
 	return nil
 }
-func (u *Usecase) Read(ctx context.Context, url string) (AssetMetaData, error) {
-	return AssetMetaData{}, nil
+func (u *Usecase) Read(ctx context.Context, url string) (io.ReadCloser, error) {
+	if url == "" {
+		return nil, ErrAssetNotFound
+	}
+	res, err := u.StorageRepo.Read(ctx, url)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 func (u *Usecase) LinkingAsset(ctx context.Context, assetIDs []string, parentID string) error {
-	err := u.AssetRepo.LinkingAsset(ctx, assetIDs, parentID)
+	md, err := u.AssetRepo.GetByIDs(ctx, assetIDs)
+	if err != nil {
+		return err
+	}
+	validIds := utils.MapField(md, func(amd AssetMetaData) (string, bool) {
+		if amd.Status == AssetStatusDeleted || amd.ParentID != "" {
+			return "", false
+		}
+		return amd.ID, true
+	})
+	if len(validIds) == 0 {
+		return ErrAssetNotFound
+	}
+	err = u.AssetRepo.LinkingAsset(ctx, validIds, parentID)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (u *Usecase) ReadByParentID(ctx context.Context, parentID []string) ([]AssetMetaData, error) {
-	data, err := u.AssetRepo.ReadByParentID(ctx, parentID)
+func (u *Usecase) ReadByParentID(ctx context.Context, parentIDs []string) ([]AssetMetaData, error) {
+	data, err := u.AssetRepo.ReadByParentID(ctx, parentIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -128,13 +154,19 @@ func (u *Usecase) ReadByParentID(ctx context.Context, parentID []string) ([]Asse
 	return data, nil
 }
 
-func (u *Usecase) ReleaseByParentID(ctx context.Context, parentID []string) ([]AssetMetaData, error) {
-	data, err := u.AssetRepo.ReadByParentID(ctx, parentID)
+func (u *Usecase) ReleaseByParentID(ctx context.Context, parentID []string) error {
+	validParentID := utils.MapField(parentID, func(s string) (string, bool) {
+		if s != "" {
+			return s, true
+		}
+		return "", false
+	})
+	if len(validParentID) == 0 {
+		return ErrAssetNotFound
+	}
+	err := u.AssetRepo.ReleaseByParentID(ctx, validParentID)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if len(data) == 0 {
-		return nil, ErrAssetNotFound
-	}
-	return data, nil
+	return nil
 }

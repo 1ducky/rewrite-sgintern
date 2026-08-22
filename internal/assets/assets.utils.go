@@ -23,8 +23,8 @@ func (l *Usecase) resolvePath(dir AssetCategory, fileName string) (string, error
 }
 
 func (l *Usecase) limitReader(reader io.Reader, maxSize int64) io.Reader {
-	if maxSize == 0 {
+	if maxSize+1 == 0 {
 		return reader
 	}
-	return io.LimitReader(reader, maxSize)
+	return io.LimitReader(reader, maxSize+1)
 }

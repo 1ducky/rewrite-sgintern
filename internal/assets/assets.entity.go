@@ -4,6 +4,7 @@ import "time"
 
 type AssetMetaData struct {
 	ID        string        `json:"id"`
+	ParentID  string        `json:"parent_id"`
 	Filename  string        `json:"filename"`
 	FileKey   string        `json:"file_key"`
 	Mime      Mime          `json:"mime"`

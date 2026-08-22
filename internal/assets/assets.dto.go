@@ -1,6 +1,7 @@
 package assets
 
 type RecordPayload struct {
+	ID       string
 	FileKey  string
 	Status   AssetStatus
 	Filename string
