@@ -21,9 +21,9 @@ type UsecaseContract interface {
 }
 
 type AssetRepository interface {
-	Record(ctx context.Context, payload RecordPayload) (AssetMetaData, error)
+	Record(ctx context.Context, payload RecordPayload) error
 	MarkAsDeleted(ctx context.Context, payload DeletePayload) error
-	Update(ctx context.Context, payload UpdatePayload) (AssetMetaData, error)
+	Update(ctx context.Context, payload UpdatePayload) error
 	GetByIDs(ctx context.Context, id []string) ([]AssetMetaData, error)
 	ReadByParentID(ctx context.Context, parentID []string) ([]AssetMetaData, error)
 	LinkingAsset(ctx context.Context, assetID []string, parentID string) error

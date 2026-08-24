@@ -24,23 +24,42 @@ func NewUsecase(config config.StorageConfig, StorageRepo RepositoryContract, Ass
 }
 
 func (u *Usecase) Upload(ctx context.Context, r io.Reader, upload UploadPolicy) (AssetMetaData, error) {
+	var entity AssetMetaData
+
+	// Policy
 	policy := PolicyAsset[upload.Category]
 	maxSize := min(policy.MaxSize, upload.MaxSize)
 	mime, newR, err := reader.DetectMime(r)
 	if err != nil {
 		return AssetMetaData{}, err
 	}
+
+	// Reader handle
 	limitedR := u.limitReader(newR, maxSize)
 	typeBuffer, ok := isAllowedExt(Mime(mime))
 	if !ok || !isAllowedMimeByPolicy(policy, typeBuffer.Mime) {
 		return AssetMetaData{}, ErrAssetInvalidMime
 	}
-	name := upload.UserID + "_" + uuid.NewString() + string(typeBuffer.Ext)
-	fullpath, err := u.resolvePath(upload.Category, name)
+
+	// Resolve path
+	entity.ID = uuid.NewString()
+	entity.AuthorID = upload.UserID
+	entity.Mime = typeBuffer.Mime
+	entity.Category = upload.Category
+	entity.Filename = upload.UserID + "_" + uuid.NewString() + string(typeBuffer.Ext)
+	entity.Size = 0
+	entity.Status = AssetStatusPending
+	// entity.CreatedAt = upload.UserID
+	// entity.UpdatedAt = upload.UserID
+	var fullpath string
+	fullpath, err = u.resolvePath(entity.Category, entity.Filename)
 	if err != nil {
 		return AssetMetaData{}, err
 	}
-	metadata, err := u.AssetRepo.Record(ctx, RecordPayload{ID: uuid.NewString(), Status: AssetStatusPending, FileKey: fullpath, Filename: name, Mime: typeBuffer.Mime, AuthorID: upload.UserID, Category: upload.Category})
+	entity.FileKey = fullpath
+
+	// Record
+	err = u.AssetRepo.Record(ctx, RecordPayload{ID: entity.ID, Status: entity.Status, FileKey: entity.FileKey, Filename: entity.Filename, Mime: entity.Mime, AuthorID: entity.AuthorID, Category: entity.Category})
 	if err != nil {
 		return AssetMetaData{}, err
 	}
@@ -52,19 +71,20 @@ func (u *Usecase) Upload(ctx context.Context, r io.Reader, upload UploadPolicy) 
 	if res.Size > maxSize {
 		return AssetMetaData{}, ErrAssetTooLarge
 	}
-	metadata, err = u.AssetRepo.Update(ctx, UpdatePayload{
-		Id:        metadata.ID,
-		Size:      res.Size,
+	entity.Size = res.Size
+	err = u.AssetRepo.Update(ctx, UpdatePayload{
+		Id:        entity.ID,
+		Size:      entity.Size,
 		Status:    AssetStatusActive,
-		OldStatus: AssetStatusPending,
+		OldStatus: entity.Status,
 		AuthorID:  upload.UserID,
 	})
 	if err != nil {
 		return AssetMetaData{}, err
 	}
-	metadata.FileKey = fullpath
+	entity.Status = AssetStatusActive
 
-	return metadata, nil
+	return entity, nil
 }
 
 func (u *Usecase) Delete(ctx context.Context, payload DeletePayload) error {

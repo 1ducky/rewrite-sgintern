@@ -15,7 +15,7 @@ func NewMysqlRepo(db db.DBTX) AssetRepository {
 	return &MysqlRepo{DB: db}
 }
 
-func (r *MysqlRepo) Record(ctx context.Context, payload RecordPayload) (AssetMetaData, error) {
+func (r *MysqlRepo) Record(ctx context.Context, payload RecordPayload) error {
 	collom := db.MakeColm(ID, FILENAME, FILE_KEY, MIME, AUTHOR_ID, CATEGORY, STATUS)
 	placeHolder := db.MakePlaceHolder(len(collom))
 	input := []any{payload.ID, payload.Filename, payload.FileKey, payload.Mime, payload.AuthorID, payload.Category, payload.Status}
@@ -23,17 +23,9 @@ func (r *MysqlRepo) Record(ctx context.Context, payload RecordPayload) (AssetMet
 	query := `INSERT INTO ` + string(TABLE) + `(` + strings.Join(collom, ",") + `) VALUES (` + strings.Join(placeHolder, ",") + `)`
 	_, err := r.DB.ExecContext(ctx, query, input...)
 	if err != nil {
-		return AssetMetaData{}, err
+		return err
 	}
-	return AssetMetaData{
-		ID:       payload.ID,
-		Filename: payload.Filename,
-		FileKey:  payload.FileKey,
-		Mime:     payload.Mime,
-		AuthorID: payload.AuthorID,
-		Category: payload.Category,
-		Status:   payload.Status,
-	}, nil
+	return nil
 }
 
 func (r *MysqlRepo) MarkAsDeleted(ctx context.Context, payload DeletePayload) error {
@@ -59,24 +51,20 @@ func (r *MysqlRepo) MarkAsDeleted(ctx context.Context, payload DeletePayload) er
 
 }
 
-func (r *MysqlRepo) Update(ctx context.Context, payload UpdatePayload) (AssetMetaData, error) {
+func (r *MysqlRepo) Update(ctx context.Context, payload UpdatePayload) error {
 	collom := []string{string(SIZE), string(STATUS)}
 	where := db.MakeColm(ID, STATUS, AUTHOR_ID)
 	input := []any{payload.Size, payload.Status, payload.Id, payload.OldStatus, payload.AuthorID}
 	query := `UPDATE ` + string(TABLE) + ` SET ` + strings.Join(collom, "= ?, ") + "= ? WHERE " + strings.Join(where, "= ? AND ") + " = ?"
 	res, err := r.DB.ExecContext(ctx, query, db.ToArgs(input)...)
 	if err != nil {
-		return AssetMetaData{}, err
+		return err
 	}
 	rowsAffected, err := res.RowsAffected()
 	if err != nil || rowsAffected != 1 {
-		return AssetMetaData{}, err
+		return err
 	}
-	return AssetMetaData{
-		ID:     payload.Id,
-		Size:   payload.Size,
-		Status: payload.Status,
-	}, nil
+	return nil
 }
 
 func (r *MysqlRepo) GetByIDs(ctx context.Context, ids []string) ([]AssetMetaData, error) {

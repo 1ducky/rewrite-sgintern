@@ -20,7 +20,7 @@ func NewFakeRepo() AssetRepository {
 		assets: make(map[string]AssetMetaData),
 	}
 }
-func (f *FakeRepo) Record(ctx context.Context, payload RecordPayload) (AssetMetaData, error) {
+func (f *FakeRepo) Record(ctx context.Context, payload RecordPayload) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	asset := AssetMetaData{
@@ -35,7 +35,7 @@ func (f *FakeRepo) Record(ctx context.Context, payload RecordPayload) (AssetMeta
 		UpdatedAt: time.Now(),
 	}
 	f.assets[payload.ID] = asset
-	return asset, nil
+	return nil
 }
 func (f *FakeRepo) MarkAsDeleted(ctx context.Context, payload DeletePayload) error {
 	f.mu.Lock()
@@ -51,12 +51,12 @@ func (f *FakeRepo) MarkAsDeleted(ctx context.Context, payload DeletePayload) err
 	}
 	return nil
 }
-func (f *FakeRepo) Update(ctx context.Context, payload UpdatePayload) (AssetMetaData, error) {
+func (f *FakeRepo) Update(ctx context.Context, payload UpdatePayload) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	asset, ok := f.assets[payload.Id]
 	if !ok {
-		return AssetMetaData{}, errors.New("asset not found")
+		return errors.New("asset not found")
 	}
 	if payload.Size != 0 {
 		asset.Size = payload.Size
@@ -66,7 +66,7 @@ func (f *FakeRepo) Update(ctx context.Context, payload UpdatePayload) (AssetMeta
 	}
 	asset.UpdatedAt = time.Now()
 	f.assets[payload.Id] = asset
-	return asset, nil
+	return nil
 }
 func (f *FakeRepo) GetByIDs(ctx context.Context, ids []string) ([]AssetMetaData, error) {
 	f.mu.RLock()

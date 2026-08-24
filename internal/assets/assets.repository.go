@@ -12,16 +12,16 @@ func NewRepository() AssetRepository {
 	return &Repo{}
 }
 
-func (r *Repo) Record(ctx context.Context, payload RecordPayload) (AssetMetaData, error) {
-	return AssetMetaData{}, nil
+func (r *Repo) Record(ctx context.Context, payload RecordPayload) error {
+	return nil
 }
 
 func (r *Repo) MarkAsDeleted(ctx context.Context, payload DeletePayload) error {
 	return nil
 }
 
-func (r *Repo) Update(ctx context.Context, payload UpdatePayload) (AssetMetaData, error) {
-	return AssetMetaData{}, nil
+func (r *Repo) Update(ctx context.Context, payload UpdatePayload) error {
+	return nil
 }
 
 func (r *Repo) GetByIDs(ctx context.Context, id []string) ([]AssetMetaData, error) {
