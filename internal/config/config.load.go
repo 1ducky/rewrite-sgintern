@@ -10,6 +10,7 @@ import (
 type AppConfig struct {
 	StorageConfig StorageConfig
 	AuthConfig    AuthConfig
+	DBConfig      DBConfig
 }
 
 func LoadConfig() (AppConfig, error) {
@@ -19,7 +20,8 @@ func LoadConfig() (AppConfig, error) {
 	}
 	StorageConf := LoadStorageConfig()
 	authConf := LoadAuthConfig()
-	return AppConfig{StorageConfig: StorageConf, AuthConfig: authConf}, nil
+	dbConf := LoadMySQLDatabaseConfig()
+	return AppConfig{StorageConfig: StorageConf, AuthConfig: authConf, DBConfig: dbConf}, nil
 }
 
 func getEnv(key, fallback string) string {

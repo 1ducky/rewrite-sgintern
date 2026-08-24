@@ -3,19 +3,15 @@ package assets_test
 import (
 	"RewriteProject/internal/assets"
 	"RewriteProject/internal/config"
+	"RewriteProject/internal/db"
 	"RewriteProject/internal/localstorage"
 	"RewriteProject/internal/utils"
 	"bytes"
 	"io"
+	"log"
 	"testing"
 	"testing/iotest"
 )
-
-// Upload(ctx context.Context, reader io.Reader, upload UploadPolicy) (AssetMetaData, error)
-// Delete(ctx context.Context, payload DeletePayload) error
-// Read(ctx context.Context, url string) (AssetMetaData, error)
-// LinkingAsset(ctx context.Context, assetID []string, parentID string) error
-// ReadByParentID(ctx context.Context, parentID []string) ([]AssetMetaData, error)
 
 type UsecaseContract string
 
@@ -107,20 +103,20 @@ var TestBuffer = map[Mime][]byte{
 }
 
 func NewUC(t *testing.T) assets.UsecaseContract {
-	conf := config.StorageConfig{
-		StorageRoot:         t.TempDir(),
-		StoragePathTemp:     "temp",
-		StoragePathUpload:   "upload",
-		StoragePathDocument: "document",
-		StoragePathAvatar:   "avatar",
-		StoragePathVideo:    "video",
+	conf, err := config.LoadConfig()
+	if err != nil {
+		t.Fatal("Config Failed Init", err)
 	}
-	storage, err := localstorage.NewLocalStorage(conf)
+	db, err := db.NewMySQLDatabase(&conf.DBConfig)
+	if err != nil {
+		t.Fatal("DB Failed Init", err, conf.DBConfig)
+	}
+	storage, err := localstorage.NewLocalStorage(conf.StorageConfig)
 	if err != nil {
 		t.Fatal("Storage Failed Init")
 	}
-	assetRepo := assets.NewFakeRepo()
-	assetManager := assets.NewUsecase(conf, storage, assetRepo)
+	assetRepo := assets.NewMysqlRepo(db)
+	assetManager := assets.NewUsecase(conf.StorageConfig, storage, assetRepo)
 	if assetManager == nil {
 		t.Fatal("Asset Manager Failed Init")
 	}
@@ -130,7 +126,7 @@ func NewUC(t *testing.T) assets.UsecaseContract {
 func CreateUploadUsecase() []UploadTestPayload {
 	return []UploadTestPayload{
 		{
-			Name:        "VALID_CATEGORY_UPLOAD_TEST",
+			Name:        "VALID_CATEGORY_UPLOAD_TEST1",
 			ExpectedErr: nil,
 			Usecase:     Upload,
 			Policy: assets.UploadPolicy{
@@ -141,7 +137,7 @@ func CreateUploadUsecase() []UploadTestPayload {
 			Reader: bytes.NewBuffer(TestBuffer[MimeDocPDF]),
 		},
 		{
-			Name:        "VALID_CATEGORY_UPLOAD_TEST",
+			Name:        "INVALID_CATEGORY_UPLOAD_TEST2",
 			ExpectedErr: assets.ErrAssetInvalidMime,
 			Usecase:     Upload,
 			Policy: assets.UploadPolicy{
@@ -222,6 +218,7 @@ func TestUpload(t *testing.T) {
 					ExpectedErr: nil,
 					FileKey:     res.FileKey,
 				})
+				log.Print(tc.Name, res.FileKey)
 				validIDS = append(validIDS, res.ID)
 			}
 			if err != tc.ExpectedErr {
@@ -251,7 +248,7 @@ func TestUpload(t *testing.T) {
 					Error:       err,
 					ExpectedErr: tc.ExpectedErr,
 				})
-				t.Fatalf("ReadByID: expected =%v, got err=%v", tc.ExpectedErr, err)
+				t.Fatalf("ReadByID: expected =%v, got err=%v,filePath=%s", tc.ExpectedErr, err, tc.FileKey)
 			}
 			Report = append(Report, TestReport{
 				Pass:        true,

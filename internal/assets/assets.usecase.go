@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log"
 
 	"github.com/google/uuid"
 )
@@ -39,7 +40,7 @@ func (u *Usecase) Upload(ctx context.Context, r io.Reader, upload UploadPolicy) 
 	if err != nil {
 		return AssetMetaData{}, err
 	}
-	metadata, err := u.AssetRepo.Record(ctx, RecordPayload{Status: AssetStatusPending, FileKey: fullpath, Filename: name, Mime: typeBuffer.Mime, AuthorID: upload.UserID, Category: upload.Category})
+	metadata, err := u.AssetRepo.Record(ctx, RecordPayload{ID: uuid.NewString(), Status: AssetStatusPending, FileKey: fullpath, Filename: name, Mime: typeBuffer.Mime, AuthorID: upload.UserID, Category: upload.Category})
 	if err != nil {
 		return AssetMetaData{}, err
 	}
@@ -55,12 +56,13 @@ func (u *Usecase) Upload(ctx context.Context, r io.Reader, upload UploadPolicy) 
 		Id:        metadata.ID,
 		Size:      res.Size,
 		Status:    AssetStatusActive,
-		OldStatus: metadata.Status,
+		OldStatus: AssetStatusPending,
 		AuthorID:  upload.UserID,
 	})
 	if err != nil {
-		return AssetMetaData{}, ErrAssetFailedCreate
+		return AssetMetaData{}, err
 	}
+	metadata.FileKey = fullpath
 
 	return metadata, nil
 }
@@ -113,6 +115,7 @@ func (u *Usecase) Delete(ctx context.Context, payload DeletePayload) error {
 }
 func (u *Usecase) Read(ctx context.Context, url string) (io.ReadCloser, error) {
 	if url == "" {
+		log.Print(url)
 		return nil, ErrAssetNotFound
 	}
 	res, err := u.StorageRepo.Read(ctx, url)

@@ -17,6 +17,7 @@ var (
 	ErrStorageUnavailable = errors.New("storage backend unavailable")
 	ErrPermissionDenied   = errors.New("permission denied")
 	ErrUnauthorized       = errors.New("unauthorized")
+	ErrAssetFailedUpdate  = errors.New("asset failed update")
 	ErrAssetFailedDelete  = errors.New("asset failed delete")
 	ErrAssetInvalidPath   = errors.New("asset invalid path")
 )
@@ -36,6 +37,7 @@ const (
 	CodeAssetInvalidMime   CodeErr = "ASSET_INVALID_MIME"
 	CodeInternal           CodeErr = "INTERNAL_ERROR"
 	CodeAssetFailedDelete  CodeErr = "ASSET_FAILED_DELETE"
+	CodeAssetFailedUpdate  CodeErr = "ASSET_FAILED_UPDATE"
 	CodeAssetInvalidPath   CodeErr = "ASSET_INVALID_PATH"
 )
 
@@ -57,6 +59,7 @@ var MapErr = []entry{
 	{ErrPermissionDenied, CodePermissionDenied, http.StatusForbidden, "Anda tidak memiliki akses"},
 	{ErrUnauthorized, CodeUnauthorized, http.StatusUnauthorized, "Anda belum terautentikasi"},
 	{ErrAssetFailedDelete, CodeAssetFailedDelete, http.StatusInternalServerError, "Gagal menghapus asset"},
+	{ErrAssetFailedUpdate, CodeAssetFailedUpdate, http.StatusInternalServerError, "Gagal update asset"},
 	{ErrAssetInvalidPath, CodeAssetInvalidPath, http.StatusBadRequest, "Asset path tidak valid"},
 }
 
