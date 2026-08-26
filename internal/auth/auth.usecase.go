@@ -1,31 +1,37 @@
 package auth
 
 import (
+	"RewriteProject/internal/utils"
 	"context"
+	"strings"
 	"time"
 )
 
 type Service struct {
-	Repository RepositoryContract
-	Token      TokenContract
-	Session    SessionUsecase
+	CredentialRepository CredentialRepositoryContract
+	Token                TokenContract
+	SessionRepo          SessionRepositoryContract
 }
 
-func NewAuthService(Repo RepositoryContract, Token TokenContract, Session SessionUsecase) UsecaseContract {
+func NewAuthService(CredentialRepo CredentialRepositoryContract, Token TokenContract, Session SessionRepositoryContract) UsecaseContract {
 	return &Service{
-		Repository: Repo,
-		Token:      Token,
+		CredentialRepository: CredentialRepo,
+		Token:                Token,
+		SessionRepo:          Session,
 	}
 }
 
 func (s *Service) Login(ctx context.Context, payload LoginPayload) (TokenResponse, error) {
-	user, err := s.Repository.Login(ctx, payload.Email)
+	if payload.Email == "" || payload.Password == "" || !utils.IsEmailValid(payload.Email) || len(strings.Split(payload.Password, "")) < PasswordLength {
+		return TokenResponse{}, ErrInvalidCredentials
+	}
+	user, err := s.CredentialRepository.Authentication(ctx, payload.Email)
 	if err != nil {
-		return TokenResponse{}, err
+		return TokenResponse{}, ErrInvalidCredentials
 	}
 	// Compare hash password
-	if user.Password != payload.Password {
-		return TokenResponse{}, ErrInvalidPassword
+	if !utils.CheckHashString(user.Password, payload.Password) {
+		return TokenResponse{}, ErrInvalidCredentials
 	}
 
 	token, err := s.Token.CreateToken(ctx, TokenEntity{ID: user.ID, Role: user.Role, Version: 0}, 5)
@@ -36,7 +42,7 @@ func (s *Service) Login(ctx context.Context, payload LoginPayload) (TokenRespons
 	if err != nil {
 		return TokenResponse{}, err
 	}
-	res, err := s.Session.Create(ctx, CreateSessionPayload{
+	err = s.SessionRepo.Create(ctx, CreateSessionPayload{
 		UserID:       user.ID,
 		AccessToken:  token,
 		RefreshToken: refreshToken,
@@ -45,9 +51,31 @@ func (s *Service) Login(ctx context.Context, payload LoginPayload) (TokenRespons
 		return TokenResponse{}, err
 	}
 	return TokenResponse{
-		AccessToken:  res.AccessToken,
-		RefreshToken: res.RefreshToken,
+		AccessToken:  token,
+		RefreshToken: refreshToken,
 	}, nil
+
+}
+
+func (s *Service) Register(ctx context.Context, payload RegisterPayload) error {
+	// hash password
+	switch {
+	case len(strings.Split(payload.Password, "")) < PasswordLength:
+		return ErrPasswordShort
+	}
+
+	password, err := utils.HashString(payload.Password)
+	if err != nil {
+		return err
+	}
+
+	// check email valid
+	if !utils.IsEmailValid(payload.Email) {
+		return ErrInvalidEmail
+	}
+
+	payload.Password = password
+	return s.CredentialRepository.Registration(ctx, payload)
 
 }
 
@@ -57,7 +85,7 @@ func (s *Service) Refresh(ctx context.Context, oldrefreshToken string) (TokenRes
 		return TokenResponse{}, err
 	}
 	// Revoke Version
-	session, err := s.Session.GetByRefreshToken(ctx, user.ID, oldrefreshToken)
+	session, err := s.SessionRepo.GetByRefreshToken(ctx, oldrefreshToken)
 	if err != nil {
 		return TokenResponse{}, err
 	}
@@ -78,7 +106,7 @@ func (s *Service) Refresh(ctx context.Context, oldrefreshToken string) (TokenRes
 	if err != nil {
 		return TokenResponse{}, err
 	}
-	res, err := s.Session.Rotate(ctx, UpdateSessionPayload{
+	err = s.SessionRepo.Rotate(ctx, UpdateSessionPayload{
 		UserID:          user.ID,
 		OldrefreshToken: oldrefreshToken,
 		AccessToken:     newToken,
@@ -88,25 +116,24 @@ func (s *Service) Refresh(ctx context.Context, oldrefreshToken string) (TokenRes
 	if err != nil {
 		return TokenResponse{}, err
 	}
-	return TokenResponse{AccessToken: res.AccessToken, RefreshToken: res.RefreshToken}, nil
+	return TokenResponse{AccessToken: newToken, RefreshToken: newRefreshToken}, nil
 }
 
-func (s *Service) Logout(ctx context.Context, oldrefreshToken string) (string, error) {
+func (s *Service) Logout(ctx context.Context, oldrefreshToken string) error {
 	// Revoke Version
 	user, err := s.Token.VerifyToken(ctx, oldrefreshToken)
 	if err != nil {
-		return "", err
+		return err
 	}
-	err = s.Session.Delete(ctx, DeleteSessionPayload{
+	err = s.SessionRepo.Delete(ctx, DeleteSessionPayload{
 		UserID:       user.ID,
 		RefreshToken: oldrefreshToken,
-		Version:      user.Version,
 	})
 
 	if err != nil {
-		return "", err
+		return err
 	}
-	return "success", nil
+	return nil
 }
 
 func (s *Service) Verify(ctx context.Context, token string) (TokenEntity, error) {

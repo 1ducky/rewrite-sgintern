@@ -23,3 +23,5 @@ func (r Role) String() string {
 func (r Role) Compare(diff Role) bool {
 	return r == diff
 }
+
+const PasswordLength int = 8
