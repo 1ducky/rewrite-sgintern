@@ -4,7 +4,7 @@ type Role string
 
 const (
 	Admin Role = "ADMIN"
-	User  Role = "USER"
+	User  Role = "USER" // default
 )
 
 func ParseRole(role string) (Role, error) {
@@ -25,3 +25,7 @@ func (r Role) Compare(diff Role) bool {
 }
 
 const PasswordLength int = 8
+const (
+	AccessTokenDuration  int = 5
+	RefreshTokenDuration int = 60 * 24 * 30
+)

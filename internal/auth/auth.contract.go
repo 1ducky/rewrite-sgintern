@@ -14,7 +14,7 @@ type UsecaseContract interface {
 type CredentialRepositoryContract interface {
 	Authentication(ctx context.Context, email string) (AuthLogin, error) //authentication credential
 	Registration(ctx context.Context, entity RegisterPayload) error      //registration new Credential
-
+	GetRoleByUserId(ctx context.Context, userId string) (Role, error)
 }
 
 // Session Manager
@@ -29,8 +29,8 @@ type SessionRepositoryContract interface {
 
 // Token Manager
 type TokenContract interface {
-	CreateToken(ctx context.Context, payload TokenEntity, minute int) (string, error) //create token with entity
-	VerifyToken(ctx context.Context, token string) (TokenEntity, error)               //verify token and return entity
+	CreateToken(ctx context.Context, payload TokenEntity) (string, error) //create token with entity
+	VerifyToken(ctx context.Context, token string) (TokenEntity, error)   //verify token and return entity
 }
 
 const ContextAuthEntityKey string = "user-auth" //key to get user from context

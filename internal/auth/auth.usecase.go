@@ -5,6 +5,8 @@ import (
 	"context"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Service struct {
@@ -25,27 +27,33 @@ func (s *Service) Login(ctx context.Context, payload LoginPayload) (TokenRespons
 	if payload.Email == "" || payload.Password == "" || !utils.IsEmailValid(payload.Email) || len(strings.Split(payload.Password, "")) < PasswordLength {
 		return TokenResponse{}, ErrInvalidCredentials
 	}
-	user, err := s.CredentialRepository.Authentication(ctx, payload.Email)
+	credentials, err := s.CredentialRepository.Authentication(ctx, payload.Email)
 	if err != nil {
 		return TokenResponse{}, ErrInvalidCredentials
 	}
 	// Compare hash password
-	if !utils.CheckHashString(user.Password, payload.Password) {
+	if !utils.CheckHashString(credentials.Password, payload.Password) {
 		return TokenResponse{}, ErrInvalidCredentials
 	}
 
-	token, err := s.Token.CreateToken(ctx, TokenEntity{ID: user.ID, Role: user.Role, Version: 0}, 5)
+	accessTokenRevokedAt := time.Now().Add(time.Minute * time.Duration(AccessTokenDuration))
+	refreshTokenRevokedAt := time.Now().Add(time.Minute * time.Duration(RefreshTokenDuration))
+	SessionID := "SESSION_" + credentials.UserID + "_" + uuid.NewString()
+
+	token, err := s.Token.CreateToken(ctx, TokenEntity{ID: SessionID, UserID: credentials.UserID, Role: credentials.Role, Version: 0, RevokeAt: accessTokenRevokedAt})
 	if err != nil {
 		return TokenResponse{}, err
 	}
-	refreshToken, err := s.Token.CreateToken(ctx, TokenEntity{ID: user.ID, Role: user.Role, Version: 0}, 60*24*30)
+	refreshToken, err := s.Token.CreateToken(ctx, TokenEntity{ID: SessionID, UserID: credentials.UserID, Role: credentials.Role, Version: 0, RevokeAt: refreshTokenRevokedAt})
 	if err != nil {
 		return TokenResponse{}, err
 	}
 	err = s.SessionRepo.Create(ctx, CreateSessionPayload{
-		UserID:       user.ID,
+		SessionID:    SessionID,
 		AccessToken:  token,
 		RefreshToken: refreshToken,
+		RevokeAt:     accessTokenRevokedAt,
+		UserID:       credentials.UserID,
 	})
 	if err != nil {
 		return TokenResponse{}, err
@@ -75,12 +83,13 @@ func (s *Service) Register(ctx context.Context, payload RegisterPayload) error {
 	}
 
 	payload.Password = password
+	payload.CredentialID = uuid.NewString()
 	return s.CredentialRepository.Registration(ctx, payload)
 
 }
 
 func (s *Service) Refresh(ctx context.Context, oldrefreshToken string) (TokenResponse, error) {
-	user, err := s.Token.VerifyToken(ctx, oldrefreshToken)
+	token, err := s.Token.VerifyToken(ctx, oldrefreshToken)
 	if err != nil {
 		return TokenResponse{}, err
 	}
@@ -89,7 +98,7 @@ func (s *Service) Refresh(ctx context.Context, oldrefreshToken string) (TokenRes
 	if err != nil {
 		return TokenResponse{}, err
 	}
-	if session.Version != user.Version {
+	if session.Version != token.Version {
 		return TokenResponse{}, ErrTokenExpired
 	}
 
@@ -97,21 +106,26 @@ func (s *Service) Refresh(ctx context.Context, oldrefreshToken string) (TokenRes
 		return TokenResponse{}, ErrTokenExpired
 	}
 	nextVersion := session.Version + 1
-
-	newToken, err := s.Token.CreateToken(ctx, TokenEntity{ID: user.ID, Role: user.Role, Version: nextVersion}, 5)
+	accessTokenRevokedAt := time.Now().Add(time.Minute * time.Duration(AccessTokenDuration))
+	refreshTokenRevokedAt := time.Now().Add(time.Minute * time.Duration(RefreshTokenDuration))
+	role, err := s.CredentialRepository.GetRoleByUserId(ctx, session.UserID)
 	if err != nil {
 		return TokenResponse{}, err
 	}
-	newRefreshToken, err := s.Token.CreateToken(ctx, TokenEntity{ID: user.ID, Role: user.Role, Version: nextVersion}, 60*24*30)
+
+	newToken, err := s.Token.CreateToken(ctx, TokenEntity{ID: session.ID, Role: role, Version: nextVersion, UserID: session.ID, RevokeAt: accessTokenRevokedAt})
+	if err != nil {
+		return TokenResponse{}, err
+	}
+	newRefreshToken, err := s.Token.CreateToken(ctx, TokenEntity{ID: session.ID, Role: role, Version: nextVersion, UserID: session.ID, RevokeAt: refreshTokenRevokedAt})
 	if err != nil {
 		return TokenResponse{}, err
 	}
 	err = s.SessionRepo.Rotate(ctx, UpdateSessionPayload{
-		UserID:          user.ID,
+		UserID:          session.UserID,
 		OldrefreshToken: oldrefreshToken,
 		AccessToken:     newToken,
 		RefreshToken:    newRefreshToken,
-		Version:         nextVersion,
 	})
 	if err != nil {
 		return TokenResponse{}, err

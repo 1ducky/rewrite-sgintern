@@ -9,16 +9,17 @@ type AuthEntity struct {
 	Version  int
 }
 type AuthLogin struct {
-	ID       string
+	UserID   string
 	Email    string
 	Password string
 	Username string
 	Role     Role
 }
 type RegisterPayload struct {
-	UserID   string
-	Email    string
-	Password string
+	CredentialID string
+	UserID       string
+	Email        string
+	Password     string
 }
 type LoginPayload struct {
 	Email    string
@@ -43,7 +44,6 @@ type UpdateSessionPayload struct {
 	OldrefreshToken string
 	RefreshToken    string
 	UserID          string
-	Version         int
 	RevokeAt        time.Time
 }
 

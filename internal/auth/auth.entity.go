@@ -6,9 +6,11 @@ import (
 )
 
 type TokenEntity struct {
-	ID      string
-	Role    Role
-	Version int
+	ID       string
+	UserID   string
+	Role     Role
+	Version  int
+	RevokeAt time.Time
 }
 
 type CredentialEntity struct {
@@ -32,11 +34,12 @@ const CREDENTIAL_TABLE db.Table = "credential"
 const SESSION_TABLE db.Table = "session"
 
 const (
-	CREDENTIAL_ID       db.Collom = "id"
-	CREDENTIAL_EMAIL    db.Collom = "email"
-	CREDENTIAL_PASSWORD db.Collom = "password"
-	CREDENTIAL_VERSION  db.Collom = "version"
-	CREDENTIAL_ROLE     db.Collom = "role"
+	CREDENTIAL_ID       db.Collom = "id"       // primary
+	CREDENTIAL_USER_ID  db.Collom = "user_id"  //unique
+	CREDENTIAL_EMAIL    db.Collom = "email"    //uniquer
+	CREDENTIAL_PASSWORD db.Collom = "password" // hashed
+	CREDENTIAL_VERSION  db.Collom = "version"  // int
+	CREDENTIAL_ROLE     db.Collom = "role"     // enum
 )
 
 const (
