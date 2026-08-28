@@ -21,7 +21,7 @@ type Service struct {
 	Issuer string
 }
 
-func NewJWT(config *config.AuthConfig) auth.TokenContract {
+func NewJWT(config config.AuthConfig) auth.TokenContract {
 	if config.Issuer == "" || config.SecretKeyJWT == "" {
 		return nil
 	}
@@ -72,9 +72,9 @@ func (r *Service) VerifyToken(ctx context.Context, tokenString string) (auth.Tok
 		return auth.TokenEntity{}, errors.New("Invalid Method")
 	}
 
-	if claims.ExpiresAt.Before(time.Now()) {
-		return auth.TokenEntity{}, auth.ErrTokenExpired
-	}
+	// if claims.ExpiresAt.Before(time.Now()) {
+	// 	return auth.TokenEntity{}, auth.ErrTokenExpired
+	// }
 
 	return claims.TokenEntity, nil
 }

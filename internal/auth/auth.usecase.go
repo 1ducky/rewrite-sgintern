@@ -3,10 +3,9 @@ package auth
 import (
 	"RewriteProject/internal/utils"
 	"context"
+	"strconv"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type Service struct {
@@ -32,19 +31,19 @@ func (s *Service) Login(ctx context.Context, payload LoginPayload) (TokenRespons
 		return TokenResponse{}, ErrInvalidCredentials
 	}
 	// Compare hash password
-	if !utils.CheckHashString(credentials.Password, payload.Password) {
+	if !utils.CheckHashString(payload.Password, credentials.Password) {
 		return TokenResponse{}, ErrInvalidCredentials
 	}
 
-	accessTokenRevokedAt := time.Now().Add(time.Minute * time.Duration(AccessTokenDuration))
-	refreshTokenRevokedAt := time.Now().Add(time.Minute * time.Duration(RefreshTokenDuration))
-	SessionID := "SESSION_" + credentials.UserID + "_" + uuid.NewString()
+	accessTokenRevokedAt := time.Now().Add(AccessTokenDuration)
+	refreshTokenRevokedAt := time.Now().Add(RefreshTokenDuration)
+	SessionID := GeneratedUUIDSession(credentials.UserID)
 
-	token, err := s.Token.CreateToken(ctx, TokenEntity{ID: SessionID, UserID: credentials.UserID, Role: credentials.Role, Version: 0, RevokeAt: accessTokenRevokedAt})
+	token, err := s.Token.CreateToken(ctx, TokenEntity{ID: SessionID, UserID: credentials.UserID, Role: credentials.Role, Version: 1, RevokeAt: accessTokenRevokedAt})
 	if err != nil {
 		return TokenResponse{}, err
 	}
-	refreshToken, err := s.Token.CreateToken(ctx, TokenEntity{ID: SessionID, UserID: credentials.UserID, Role: credentials.Role, Version: 0, RevokeAt: refreshTokenRevokedAt})
+	refreshToken, err := s.Token.CreateToken(ctx, TokenEntity{ID: SessionID, UserID: credentials.UserID, Role: credentials.Role, Version: 1, RevokeAt: refreshTokenRevokedAt})
 	if err != nil {
 		return TokenResponse{}, err
 	}
@@ -83,7 +82,7 @@ func (s *Service) Register(ctx context.Context, payload RegisterPayload) error {
 	}
 
 	payload.Password = password
-	payload.CredentialID = uuid.NewString()
+	payload.CredentialID = GeneratedUUIDCredential(payload.UserID)
 	return s.CredentialRepository.Registration(ctx, payload)
 
 }
@@ -99,15 +98,15 @@ func (s *Service) Refresh(ctx context.Context, oldrefreshToken string) (TokenRes
 		return TokenResponse{}, err
 	}
 	if session.Version != token.Version {
-		return TokenResponse{}, ErrTokenExpired
+		return TokenResponse{AccessToken: strconv.Itoa(session.Version), RefreshToken: strconv.Itoa(token.Version)}, ErrTokenExpired
 	}
 
-	if !session.RevokeAt.IsZero() || session.RevokeAt.Before(time.Now()) {
+	if !session.RevokeAt.IsZero() && session.RevokeAt.Before(time.Now()) {
 		return TokenResponse{}, ErrTokenExpired
 	}
 	nextVersion := session.Version + 1
-	accessTokenRevokedAt := time.Now().Add(time.Minute * time.Duration(AccessTokenDuration))
-	refreshTokenRevokedAt := time.Now().Add(time.Minute * time.Duration(RefreshTokenDuration))
+	accessTokenRevokedAt := time.Now().Add(AccessTokenDuration)
+	refreshTokenRevokedAt := time.Now().Add(RefreshTokenDuration)
 	role, err := s.CredentialRepository.GetRoleByUserId(ctx, session.UserID)
 	if err != nil {
 		return TokenResponse{}, err
@@ -126,6 +125,7 @@ func (s *Service) Refresh(ctx context.Context, oldrefreshToken string) (TokenRes
 		OldrefreshToken: oldrefreshToken,
 		AccessToken:     newToken,
 		RefreshToken:    newRefreshToken,
+		RevokeAt:        accessTokenRevokedAt,
 	})
 	if err != nil {
 		return TokenResponse{}, err
@@ -151,15 +151,18 @@ func (s *Service) Logout(ctx context.Context, oldrefreshToken string) error {
 }
 
 func (s *Service) Verify(ctx context.Context, token string) (TokenEntity, error) {
-	user, err := s.Token.VerifyToken(ctx, token)
+	tokenMd, err := s.Token.VerifyToken(ctx, token)
 	if err != nil {
 		return TokenEntity{}, err
 	}
 	// Call repository to check version
-	version := 0
+	version, err := s.SessionRepo.GetVersion(ctx, token)
+	if err != nil {
+		return TokenEntity{}, err
+	}
 
-	if user.Version != version {
+	if tokenMd.Version != version {
 		return TokenEntity{}, ErrTokenExpired
 	}
-	return user, nil
+	return tokenMd, nil
 }

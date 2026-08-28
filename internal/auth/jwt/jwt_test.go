@@ -9,7 +9,7 @@ import (
 )
 
 func CreateJWT(t *testing.T, cfg config.AuthConfig) auth.TokenContract {
-	return jwt.NewJWT(&cfg)
+	return jwt.NewJWT(cfg)
 }
 
 type TestToken struct {

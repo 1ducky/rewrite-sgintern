@@ -1,5 +1,7 @@
 package auth
 
+import "time"
+
 type Role string
 
 const (
@@ -26,6 +28,6 @@ func (r Role) Compare(diff Role) bool {
 
 const PasswordLength int = 8
 const (
-	AccessTokenDuration  int = 5
-	RefreshTokenDuration int = 60 * 24 * 30
+	AccessTokenDuration  time.Duration = 5 * time.Minute
+	RefreshTokenDuration time.Duration = 60 * 24 * 30 * time.Minute
 )
