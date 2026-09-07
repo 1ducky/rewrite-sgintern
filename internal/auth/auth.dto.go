@@ -1,5 +1,7 @@
 package auth
 
+import "time"
+
 type AuthEntity struct {
 	ID       string
 	Username string
@@ -7,21 +9,21 @@ type AuthEntity struct {
 	Version  int
 }
 type AuthLogin struct {
-	ID       string
+	UserID   string
 	Email    string
 	Password string
 	Username string
 	Role     Role
 }
 type RegisterPayload struct {
-	ID       string
-	Email    string
-	Password string
-	Username string
+	CredentialID string
+	UserID       string
+	Email        string
+	Password     string
 }
 type LoginPayload struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string
+	Password string
 }
 
 type TokenResponse struct {
@@ -31,20 +33,22 @@ type TokenResponse struct {
 
 // Session
 type CreateSessionPayload struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	UserID       string `json:"user_id"`
+	SessionID    string
+	AccessToken  string
+	RefreshToken string
+	UserID       string
+	RevokeAt     time.Time
 }
 type UpdateSessionPayload struct {
-	AccessToken     string `json:"access_token"`
-	OldrefreshToken string `json:"old_refresh_token"`
-	RefreshToken    string `json:"refresh_token"`
-	UserID          string `json:"user_id"`
-	Version         int    `json:"version"`
+	AccessToken     string
+	OldrefreshToken string
+	RefreshToken    string
+	UserID          string
+	RevokeAt        time.Time
 }
 
 type DeleteSessionPayload struct {
-	UserID       string `json:"user_id"`
-	RefreshToken string `json:"refresh_token"`
-	Version      int    `json:"version"`
+	SessionID    string
+	UserID       string
+	RefreshToken string
 }

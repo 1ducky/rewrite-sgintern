@@ -8,8 +8,10 @@ import (
 // Sentinel errors. Usecase & repository layer harus me-wrap error asli
 var (
 	ErrUserNotFound       = errors.New("user not found")
-	ErrInvalidPassword    = errors.New("invalid password")
+	ErrInvalidCredentials = errors.New("invalid password")
+	ErrPasswordShort      = errors.New("password is too short")
 	ErrEmailAlreadyExists = errors.New("email already exists")
+	ErrInvalidEmail       = errors.New("email is invalid")
 	ErrUnauthorized       = errors.New("unauthorized")
 	ErrTokenInvalid       = errors.New("invalid token")
 	ErrTokenExpired       = errors.New("token expired")
@@ -21,8 +23,10 @@ type CodeErr string
 // Error Code Contract Frontend
 const (
 	CodeUserNotFound       CodeErr = "USER_NOT_FOUND"
-	CodeInvalidPassword    CodeErr = "INVALID_PASSWORD"
+	CodeInvalidCredentials CodeErr = "INVALID_CREDENTIALS"
+	CodePasswordShort      CodeErr = "PASSWORD_SHORT"
 	CodeEmailAlreadyExists CodeErr = "EMAIL_ALREADY_EXISTS"
+	CodeInvalidEmail       CodeErr = "INVALID_EMAIL"
 	CodeUnauthorized       CodeErr = "UNAUTHORIZED"
 	CodeTokenInvalid       CodeErr = "TOKEN_INVALID"
 	CodeTokenExpired       CodeErr = "TOKEN_EXPIRED"
@@ -39,11 +43,12 @@ type entry struct {
 
 var MapErr = []entry{
 	{ErrUserNotFound, CodeUserNotFound, http.StatusNotFound, "Pengguna tidak ditemukan"},
-	{ErrInvalidPassword, CodeInvalidPassword, http.StatusUnauthorized, "Password salah"},
+	{ErrInvalidCredentials, CodeInvalidCredentials, http.StatusUnauthorized, "Password salah"},
 	{ErrEmailAlreadyExists, CodeEmailAlreadyExists, http.StatusConflict, "Email sudah terdaftar"},
 	{ErrUnauthorized, CodeUnauthorized, http.StatusUnauthorized, "Anda belum terautentikasi"},
 	{ErrTokenInvalid, CodeTokenInvalid, http.StatusUnauthorized, "Token tidak valid"},
 	{ErrTokenExpired, CodeTokenExpired, http.StatusUnauthorized, "Token sudah kedaluwarsa"},
+	{ErrInvalidEmail, CodeInvalidEmail, http.StatusBadRequest, "Email tidak valid"},
 }
 
 type ErrorAuth struct {

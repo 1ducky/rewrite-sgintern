@@ -1,11 +1,16 @@
 package auth
 
-import "time"
+import (
+	"RewriteProject/internal/db"
+	"time"
+)
 
 type TokenEntity struct {
-	ID      string
-	Role    Role
-	Version int
+	ID       string
+	UserID   string
+	Role     Role
+	Version  int
+	RevokeAt time.Time
 }
 
 type CredentialEntity struct {
@@ -13,6 +18,7 @@ type CredentialEntity struct {
 	Email    string
 	Password string
 	Version  int
+	Role     Role
 }
 
 type SessionEntity struct {
@@ -23,3 +29,24 @@ type SessionEntity struct {
 	RevokeAt     time.Time `json:"revoke_at"`
 	Version      int       `json:"version"`
 }
+
+const CREDENTIAL_TABLE db.Table = "credential"
+const SESSION_TABLE db.Table = "session"
+
+const (
+	CREDENTIAL_ID       db.Collom = "id"       // primary
+	CREDENTIAL_USER_ID  db.Collom = "user_id"  //unique
+	CREDENTIAL_EMAIL    db.Collom = "email"    //uniquer
+	CREDENTIAL_PASSWORD db.Collom = "password" // hashed
+	CREDENTIAL_VERSION  db.Collom = "version"  // int
+	CREDENTIAL_ROLE     db.Collom = "role"     // enum
+)
+
+const (
+	SESSION_ID            db.Collom = "id"
+	SESSION_USER_ID       db.Collom = "user_id"
+	SESSION_ACCESS_TOKEN  db.Collom = "access_token"
+	SESSION_REFRESH_TOKEN db.Collom = "refresh_token"
+	SESSION_REVOKE_AT     db.Collom = "revoke_at"
+	SESSION_VERSION       db.Collom = "version"
+)
