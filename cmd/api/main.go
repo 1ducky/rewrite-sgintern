@@ -57,9 +57,9 @@ func main() {
 	end := time.Since(start)
 	log.Printf("High Traffic took: %s\n", end)
 
-	// time.Sleep(5 * time.Second)
 	log.Print("Stopping")
 	cancel()
+	time.Sleep(2 * time.Second)
 
 	for i := 0; i < 10; i++ {
 		// Simulate High Trafic
@@ -67,5 +67,7 @@ func main() {
 		res3 := <-queue3
 		log.Printf("Result: %+v\n", res3)
 	}
+
+	mailer.Greating()
 
 }
