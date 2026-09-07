@@ -11,71 +11,99 @@ import (
 )
 
 type SMTPInfra struct {
-	conn    *smtp.Client
+	conn    []*smtp.Client
 	Conf    config.MailerConfig
 	Address string
+	closed  bool
 	Auth    smtp.Auth
 	Queue   chan MailJobs
+	mu      *sync.RWMutex
 }
 
 func NewMailer(conf *config.MailerConfig) SMTPClient {
 	address := fmt.Sprintf("%s:%d", conf.Host, conf.Port)
-	conn, err := smtp.Dial(address)
-	if err != nil {
-		return &SMTPInfra{conn: nil}
+	connPool := make([]*smtp.Client, 0, conf.MaxConn)
+	if conf.MaxConn == 0 {
+		conf.MaxConn = 10
+	}
+	for i := 0; i < conf.MaxConn; i++ {
+		conn, err := smtp.Dial(address)
+		if err != nil {
+			return &SMTPInfra{conn: nil}
+		}
+		connPool = append(connPool, conn)
 	}
 	auth := smtp.PlainAuth("", conf.User, conf.Password, conf.Host)
 
-	return &SMTPInfra{conn: conn, Conf: *conf, Auth: auth, Address: address, Queue: make(chan MailJobs)}
+	return &SMTPInfra{conn: connPool, Conf: *conf, Auth: auth, Address: address, Queue: make(chan MailJobs), mu: &sync.RWMutex{}, closed: false}
 }
 
-func (s *SMTPInfra) Greating() error {
-	return s.conn.Hello(s.Address)
+func (s *SMTPInfra) Greating() []*smtp.Client {
+	return s.conn
 }
 
 func (s *SMTPInfra) StartWorker(ctx context.Context) error {
-	err := s.Greating()
-	if err != nil {
-		return err
-	}
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func(ctx context.Context) {
-		defer wg.Done()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				job := <-s.Queue
-				report, err := s.SendMail(job.Mail)
-				if err != nil {
-					job.Reply <- MailReport{Failed: []Report{{RcptMail: job.Mail.To[0], Err: err}}}
-					continue
-				}
-				job.Reply <- report
-			}
-		}
-	}(ctx)
 	go func() {
-		defer wg.Done()
-		wg.Wait()
-		s.Quit()
+		<-ctx.Done()
+		s.mu.Lock()
+		close(s.Queue)
+		s.closed = true
+		s.mu.Unlock()
 	}()
+
+	for _, conn := range s.conn {
+
+		go func(conn *smtp.Client) {
+
+			defer conn.Quit()
+			for job := range s.Queue {
+
+				report, _ := s.SendMail(job.Mail, conn)
+				job.Reply <- report
+
+			}
+
+		}(conn)
+	}
+
 	return nil
 
 }
-func (s *SMTPInfra) Enqueue(mail Mail) <-chan MailReport {
+func (s *SMTPInfra) Enqueue(ctx context.Context, mail Mail) <-chan MailReport {
+
 	res := make(chan MailReport, 1)
-	job := MailJobs{
-		Mail:  mail,
-		Reply: res,
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.closed {
+		res <- s.unavaliableService(mail)
+		return res
 	}
-	s.Queue <- job
-	return res
+
+	select {
+	case s.Queue <- MailJobs{Mail: mail, Reply: res}:
+		return res
+	case <-ctx.Done():
+		res <- s.unavaliableService(mail)
+		return res
+	}
 }
 
-func (s *SMTPInfra) SendMail(mail Mail) (MailReport, error) {
+func (s *SMTPInfra) unavaliableService(mail Mail) MailReport {
+	log.Print("Service Unvaliable")
+	var failed []Report
+	for _, rcpt := range mail.To {
+		failed = append(failed, Report{RcptMail: rcpt, Err: fmt.Errorf("Unavaliable Services")})
+	}
+
+	return MailReport{
+		Failed:   failed,
+		Accepted: []string{},
+	}
+
+}
+
+func (s *SMTPInfra) SendMail(mail Mail, smtpConn *smtp.Client) (MailReport, error) {
 	if !utils.IsEmailValid(mail.From) {
 		return MailReport{}, fmt.Errorf("Invalid Sender address")
 	}
@@ -83,27 +111,27 @@ func (s *SMTPInfra) SendMail(mail Mail) (MailReport, error) {
 		return MailReport{}, fmt.Errorf("No recipients")
 	}
 
-	err := s.conn.Mail(mail.From)
+	err := smtpConn.Mail(mail.From)
 	if err != nil {
 		return MailReport{}, err
 	}
-	report := s.acceptedRCPTs(mail.To)
+	report := s.acceptedRCPTs(mail.To, smtpConn)
 
 	if len(report.Accepted) == 0 {
-		s.conn.Reset()
+		smtpConn.Reset()
 		return report, fmt.Errorf("All recipients failed")
 	}
 
 	msg := s.buildMessage(mail)
 
-	mailer, err := s.conn.Data()
+	mailer, err := smtpConn.Data()
 	if err != nil {
-		s.conn.Reset()
+		smtpConn.Reset()
 		return report, err
 	}
 	_, err = mailer.Write(msg)
 	if err != nil {
-		s.conn.Reset()
+		smtpConn.Reset()
 		return report, err
 	}
 	err = mailer.Close()
@@ -113,7 +141,7 @@ func (s *SMTPInfra) SendMail(mail Mail) (MailReport, error) {
 
 	return report, nil
 }
-func (s *SMTPInfra) acceptedRCPTs(rcpts []string) MailReport {
+func (s *SMTPInfra) acceptedRCPTs(rcpts []string, smtpConn *smtp.Client) MailReport {
 	var FailedRCPTReport []Report
 	var AcceptedRCPT []string
 
@@ -122,7 +150,7 @@ func (s *SMTPInfra) acceptedRCPTs(rcpts []string) MailReport {
 			FailedRCPTReport = append(FailedRCPTReport, Report{RcptMail: rcpt, Err: fmt.Errorf("Invalid Email address")})
 			continue
 		}
-		errrcpt := s.conn.Rcpt(rcpt)
+		errrcpt := smtpConn.Rcpt(rcpt)
 		if errrcpt != nil {
 			log.Print(errrcpt)
 			FailedRCPTReport = append(FailedRCPTReport, Report{RcptMail: rcpt, Err: fmt.Errorf("Failed to accept rcpt")})
@@ -146,6 +174,6 @@ func (s *SMTPInfra) buildMessage(mail Mail) []byte {
 	return msg
 }
 
-func (s *SMTPInfra) Quit() error {
-	return s.conn.Quit()
-}
+// func (s *SMTPInfra) Quit(conn *smtp.Client) error {
+// 	return conn.Quit()
+// }

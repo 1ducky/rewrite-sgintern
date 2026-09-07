@@ -12,6 +12,7 @@ type MailerConfig struct {
 	Password string
 	Identity string
 	Timeout  time.Duration
+	MaxConn  int
 }
 
 func NewMailerConfig() MailerConfig {

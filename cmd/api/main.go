@@ -25,7 +25,7 @@ func main() {
 
 	mailer := mailer.NewMailer(conf)
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 	err := mailer.StartWorker(ctx)
 	if err != nil {
 		log.Fatal(err)
@@ -33,13 +33,13 @@ func main() {
 	log.Print("Mailer Worker Start")
 	log.Print("Normal Traffic")
 
-	queue1 := mailer.Enqueue(mail)
+	queue1 := mailer.Enqueue(ctx, mail)
 	res1 := <-queue1
 	log.Printf("Result: %+v\n", res1)
 
 	time.Sleep(1 * time.Second)
 
-	queue2 := mailer.Enqueue(mail)
+	queue2 := mailer.Enqueue(ctx, mail)
 	res2 := <-queue2
 	log.Printf("Result: %+v\n", res2)
 
@@ -49,7 +49,7 @@ func main() {
 	start := time.Now()
 	for i := 0; i < 100; i++ {
 		// Simulate High Trafic
-		queue3 := mailer.Enqueue(mail)
+		queue3 := mailer.Enqueue(ctx, mail)
 		res3 := <-queue3
 		log.Printf("Result: %+v\n", res3)
 	}
@@ -57,7 +57,15 @@ func main() {
 	end := time.Since(start)
 	log.Printf("High Traffic took: %s\n", end)
 
-	time.Sleep(5 * time.Second)
+	// time.Sleep(5 * time.Second)
+	log.Print("Stopping")
+	cancel()
 
-	ctx.Done()
+	for i := 0; i < 10; i++ {
+		// Simulate High Trafic
+		queue3 := mailer.Enqueue(ctx, mail)
+		res3 := <-queue3
+		log.Printf("Result: %+v\n", res3)
+	}
+
 }
