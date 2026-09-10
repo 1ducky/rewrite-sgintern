@@ -36,7 +36,7 @@ func NewMailer(conf *config.MailerConfig) SMTPClient {
 	}
 	auth := smtp.PlainAuth("", conf.User, conf.Password, conf.Host)
 
-	return &SMTPInfra{conn: connPool, Conf: *conf, Auth: auth, Address: address, Queue: make(chan MailJobs), mu: &sync.RWMutex{}, closed: false}
+	return &SMTPInfra{conn: connPool, Conf: *conf, Auth: auth, Address: address, Queue: make(chan MailJobs, conf.QueueSize), mu: &sync.RWMutex{}, closed: false}
 }
 
 func (s *SMTPInfra) Greating() error {
@@ -71,7 +71,7 @@ func (s *SMTPInfra) StartWorker(ctx context.Context) error {
 			}()
 			for job := range s.Queue {
 
-				report, _ := s.SendMail(job.Mail, statusConn.Conn)
+				report, _ := s.processMail(job.Mail, statusConn.Conn)
 				job.Reply <- report
 
 			}
@@ -82,7 +82,14 @@ func (s *SMTPInfra) StartWorker(ctx context.Context) error {
 	return nil
 
 }
+
+func (s *SMTPInfra) SendMail(ctx context.Context, mail Mail) MailReport {
+	res := s.Enqueue(ctx, mail)
+	return <-res
+}
 func (s *SMTPInfra) Enqueue(ctx context.Context, mail Mail) <-chan MailReport {
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, s.Conf.Timeout)
+	defer cancel()
 
 	res := make(chan MailReport, 1)
 	s.mu.RLock()
@@ -96,23 +103,23 @@ func (s *SMTPInfra) Enqueue(ctx context.Context, mail Mail) <-chan MailReport {
 	})
 
 	if len(deadWorker) == len(s.conn) || s.closed {
-		res <- s.unavaliableService(mail)
+		res <- s.rejectRequest(mail, fmt.Errorf("Service Unavaliable"))
 		return res
 	}
 
 	select {
 	case s.Queue <- MailJobs{Mail: mail, Reply: res}:
 		return res
-	case <-ctx.Done():
-		res <- s.unavaliableService(mail)
+	case <-ctxWithTimeout.Done():
+		res <- s.rejectRequest(mail, fmt.Errorf("Request TimeOut"))
 		return res
 	}
 }
 
-func (s *SMTPInfra) unavaliableService(mail Mail) MailReport {
+func (s *SMTPInfra) rejectRequest(mail Mail, err error) MailReport {
 	var failed []Report
 	for _, rcpt := range mail.To {
-		failed = append(failed, Report{RcptMail: rcpt, Err: fmt.Errorf("Unavaliable Services")})
+		failed = append(failed, Report{RcptMail: rcpt, Err: err})
 	}
 
 	return MailReport{
@@ -122,7 +129,7 @@ func (s *SMTPInfra) unavaliableService(mail Mail) MailReport {
 
 }
 
-func (s *SMTPInfra) SendMail(mail Mail, smtpConn *smtp.Client) (MailReport, error) {
+func (s *SMTPInfra) processMail(mail Mail, smtpConn *smtp.Client) (MailReport, error) {
 	if !utils.IsEmailValid(mail.From) {
 		return MailReport{}, fmt.Errorf("Invalid Sender address")
 	}
