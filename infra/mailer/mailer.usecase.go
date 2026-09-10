@@ -11,7 +11,7 @@ import (
 )
 
 type SMTPInfra struct {
-	conn    []*smtp.Client
+	conn    []ConnStatus
 	Conf    config.MailerConfig
 	Address string
 	closed  bool
@@ -22,24 +22,28 @@ type SMTPInfra struct {
 
 func NewMailer(conf *config.MailerConfig) SMTPClient {
 	address := fmt.Sprintf("%s:%d", conf.Host, conf.Port)
-	connPool := make([]*smtp.Client, 0, conf.MaxConn)
+	connPool := make([]ConnStatus, 0, conf.MaxConn)
 	if conf.MaxConn == 0 {
 		conf.MaxConn = 10
 	}
 	for i := 0; i < conf.MaxConn; i++ {
 		conn, err := smtp.Dial(address)
 		if err != nil {
-			return &SMTPInfra{conn: nil}
+			log.Printf("Failed to connect to SMTP server: %v", err)
+			continue
 		}
-		connPool = append(connPool, conn)
+		connPool = append(connPool, ConnStatus{id: len(connPool), isDead: false, caused: nil, Conn: conn})
 	}
 	auth := smtp.PlainAuth("", conf.User, conf.Password, conf.Host)
 
-	return &SMTPInfra{conn: connPool, Conf: *conf, Auth: auth, Address: address, Queue: make(chan MailJobs), mu: &sync.RWMutex{}, closed: false}
+	return &SMTPInfra{conn: connPool, Conf: *conf, Auth: auth, Address: address, Queue: make(chan MailJobs, conf.QueueSize), mu: &sync.RWMutex{}, closed: false}
 }
 
-func (s *SMTPInfra) Greating() []*smtp.Client {
-	return s.conn
+func (s *SMTPInfra) Greating() error {
+	for _, conn := range s.conn {
+		log.Print(conn.Conn)
+	}
+	return nil
 }
 
 func (s *SMTPInfra) StartWorker(ctx context.Context) error {
@@ -51,49 +55,71 @@ func (s *SMTPInfra) StartWorker(ctx context.Context) error {
 		s.mu.Unlock()
 	}()
 
-	for _, conn := range s.conn {
+	for _, status := range s.conn {
 
-		go func(conn *smtp.Client) {
+		go func(statusConn ConnStatus) {
 
-			defer conn.Quit()
+			defer statusConn.Conn.Quit()
+			defer func() {
+				if !statusConn.isDead {
+					s.mu.Lock()
+					s.conn[statusConn.id].isDead = true
+					s.conn[statusConn.id].caused = fmt.Errorf("Worker has died")
+					s.mu.Unlock()
+				}
+
+			}()
 			for job := range s.Queue {
 
-				report, _ := s.SendMail(job.Mail, conn)
+				report, _ := s.processMail(job.Mail, statusConn.Conn)
 				job.Reply <- report
 
 			}
 
-		}(conn)
+		}(status)
 	}
 
 	return nil
 
 }
+
+func (s *SMTPInfra) SendMail(ctx context.Context, mail Mail) MailReport {
+	res := s.Enqueue(ctx, mail)
+	return <-res
+}
 func (s *SMTPInfra) Enqueue(ctx context.Context, mail Mail) <-chan MailReport {
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, s.Conf.Timeout)
+	defer cancel()
 
 	res := make(chan MailReport, 1)
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	if s.closed {
-		res <- s.unavaliableService(mail)
+	deadWorker := utils.MapField(s.conn, func(status ConnStatus) (bool, bool) {
+		if status.isDead {
+			return true, true
+		}
+		return false, false
+	})
+
+	if len(deadWorker) == len(s.conn) || s.closed {
+		res <- s.rejectRequest(mail, fmt.Errorf("Service Unavaliable"))
 		return res
 	}
 
 	select {
 	case s.Queue <- MailJobs{Mail: mail, Reply: res}:
 		return res
-	case <-ctx.Done():
-		res <- s.unavaliableService(mail)
+	case <-ctxWithTimeout.Done():
+		res <- s.rejectRequest(mail, fmt.Errorf("Request TimeOut"))
 		return res
 	}
 }
 
-func (s *SMTPInfra) unavaliableService(mail Mail) MailReport {
-	log.Print("Service Unvaliable")
+func (s *SMTPInfra) rejectRequest(mail Mail, err error) MailReport {
 	var failed []Report
 	for _, rcpt := range mail.To {
-		failed = append(failed, Report{RcptMail: rcpt, Err: fmt.Errorf("Unavaliable Services")})
+		failed = append(failed, Report{RcptMail: rcpt, Err: err})
 	}
 
 	return MailReport{
@@ -103,7 +129,7 @@ func (s *SMTPInfra) unavaliableService(mail Mail) MailReport {
 
 }
 
-func (s *SMTPInfra) SendMail(mail Mail, smtpConn *smtp.Client) (MailReport, error) {
+func (s *SMTPInfra) processMail(mail Mail, smtpConn *smtp.Client) (MailReport, error) {
 	if !utils.IsEmailValid(mail.From) {
 		return MailReport{}, fmt.Errorf("Invalid Sender address")
 	}

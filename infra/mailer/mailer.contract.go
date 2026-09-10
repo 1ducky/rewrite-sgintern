@@ -8,8 +8,8 @@ import (
 type SMTPClient interface {
 	// SendMail(mail Mail) (MailReport, error)
 	StartWorker(ctx context.Context) error
-	Enqueue(ctx context.Context, mail Mail) <-chan MailReport
-	Greating() []*smtp.Client
+	SendMail(ctx context.Context, mail Mail) MailReport
+	Greating() error
 }
 
 type MailJobs struct {

@@ -1,71 +1,64 @@
 package main
 
 import (
-	"RewriteProject/infra/mailer"
-	"RewriteProject/internal/config"
+	"RewriteProject/infra/queue"
 	"context"
+	"fmt"
 	"log"
+	"math/rand"
+	"sync"
 	"time"
 )
 
 func main() {
-	conf := &config.MailerConfig{
-		Host:     "localhost",
-		Port:     1025,
-		User:     "root",
-		Password: "pass",
-	}
-
-	mail := mailer.Mail{
-		From:    "goapp@gmail.com",
-		To:      []string{"client@gmail.com", "client2@gmail.com", "client3@gmail.com"},
-		Subject: "Test Email",
-		Body:    "Hello, This is a test email from Go.",
-	}
-
-	mailer := mailer.NewMailer(conf)
-
+	rng := rand.New(rand.NewSource(1)) // seed tetap agar reproducible
+	const invariantCheckProb = 0.2
 	ctx, cancel := context.WithCancel(context.Background())
-	err := mailer.StartWorker(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Print("Mailer Worker Start")
-	log.Print("Normal Traffic")
-
-	queue1 := mailer.Enqueue(ctx, mail)
-	res1 := <-queue1
-	log.Printf("Result: %+v\n", res1)
-
-	time.Sleep(1 * time.Second)
-
-	queue2 := mailer.Enqueue(ctx, mail)
-	res2 := <-queue2
-	log.Printf("Result: %+v\n", res2)
-
-	time.Sleep(1 * time.Second) // Normal Trafic
-
-	log.Print("High Traffic")
+	Queue := queue.NewQueue[string, string, bool]("Test", 3, 1)
+	Queue.Start(ctx)
+	go func() {
+		for process := range Queue.Job {
+			process.Reply <- true
+			close(process.Reply)
+		}
+	}()
+	var wg sync.WaitGroup
 	start := time.Now()
-	for i := 0; i < 100; i++ {
-		// Simulate High Trafic
-		queue3 := mailer.Enqueue(ctx, mail)
-		res3 := <-queue3
-		log.Printf("Result: %+v\n", res3)
+	for i := range 100 {
+		key := fmt.Sprintf("job%d", i)
+		job := fmt.Sprintf("job%d", i)
+		if rng.Float64() < invariantCheckProb {
+			wg.Add(2)
+			go func(key string, job string) {
+				defer wg.Done()
+
+				res, err := Queue.Push(ctx, key, job)
+				log.Print("dup: ", res, err)
+			}(key, job)
+			go func(key string, job string) {
+				defer wg.Done()
+
+				res, err := Queue.Push(ctx, key, job)
+				log.Print("dup: ", res, err)
+			}(key, job)
+		}
+
+		wg.Add(1)
+		go func(key string, job string) {
+			defer wg.Done()
+
+			res, err := Queue.Push(ctx, key, job)
+			log.Print(res, err)
+		}(key, job)
+
 	}
 
+	wg.Wait()
 	end := time.Since(start)
-	log.Printf("High Traffic took: %s\n", end)
+	log.Println(end)
 
-	// time.Sleep(5 * time.Second)
-	log.Print("Stopping")
+	Queue.Close()
+
 	cancel()
-
-	for i := 0; i < 10; i++ {
-		// Simulate High Trafic
-		queue3 := mailer.Enqueue(ctx, mail)
-		res3 := <-queue3
-		log.Printf("Result: %+v\n", res3)
-	}
 
 }
