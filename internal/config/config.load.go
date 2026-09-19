@@ -11,6 +11,7 @@ type AppConfig struct {
 	StorageConfig StorageConfig
 	AuthConfig    AuthConfig
 	DBConfig      DBConfig
+	HTTPConfig    HTTPConfig
 }
 
 func LoadConfig() (AppConfig, error) {
