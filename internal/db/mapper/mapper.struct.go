@@ -26,30 +26,15 @@ var (
 	ErrConnection      = errors.New("Connection error")
 )
 
-func GenerateDefaultMapping(mapp ErrorMapping) ErrorMapping {
-	if mapp.NotFound == nil {
-		mapp.NotFound = ErrNoRows
+func NewPersistanceErrMapper() *ErrorMapping {
+	return &ErrorMapping{
+		NotFound:        ErrNoRows,
+		Duplicate:       ErrDuplicate,
+		RelatedNotFound: ErrRelatedNotFound,
+		StillReferenced: ErrStillReferenced,
+		RequiredField:   ErrRequiredField,
+		ValueTooLong:    ErrValueTooLong,
+		Retryable:       ErrRetryable,
+		Connection:      ErrConnection,
 	}
-	if mapp.Duplicate == nil {
-		mapp.Duplicate = ErrDuplicate
-	}
-	if mapp.RelatedNotFound == nil {
-		mapp.RelatedNotFound = ErrRelatedNotFound
-	}
-	if mapp.StillReferenced == nil {
-		mapp.StillReferenced = ErrStillReferenced
-	}
-	if mapp.RequiredField == nil {
-		mapp.RequiredField = ErrRequiredField
-	}
-	if mapp.ValueTooLong == nil {
-		mapp.ValueTooLong = ErrValueTooLong
-	}
-	if mapp.Retryable == nil {
-		mapp.Retryable = ErrRetryable
-	}
-	if mapp.Connection == nil {
-		mapp.Connection = ErrConnection
-	}
-	return mapp
 }
