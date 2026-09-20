@@ -16,3 +16,5 @@ type Transport struct {
 	log     *slog.Logger
 	Handler http.Handler
 }
+
+type HandlerFn func(w http.ResponseWriter, r *http.Request) error

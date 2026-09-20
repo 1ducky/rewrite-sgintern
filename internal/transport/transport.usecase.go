@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-func NewTransport(ctx context.Context, cfg config.HTTPConfig, handler http.Handler, log *slog.Logger) TransportAPI {
+func NewTransport(cfg config.HTTPConfig, handler http.Handler, log *slog.Logger) TransportAPI {
 
 	return &Transport{
 
