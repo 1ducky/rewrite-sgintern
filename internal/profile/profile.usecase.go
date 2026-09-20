@@ -1,7 +1,6 @@
 package profile
 
 import (
-	"errors"
 	"strings"
 )
 
@@ -16,11 +15,11 @@ func NewUsecase(repo RepoContract) UsecaseContract {
 func (uc *Usecase) CreateUser(req CreateRequest) error {
 	var CreateInput CreateData
 	if req.ID == "" {
-		return errors.New("id is required")
+		return ErrInvalidUsername
 	}
 	CreateInput.ID = req.ID
 	if req.Username == "" {
-		return errors.New("username is required")
+		return ErrInvalidUsername
 	}
 	CreateInput.Username = req.Username
 	CreateInput.Tag = CreateInput.Username[0:4] + strings.Split(req.Username, " ")[0]

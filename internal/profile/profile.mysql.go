@@ -1,9 +1,12 @@
 package profile
 
-import "RewriteProject/internal/db"
+import (
+	"RewriteProject/internal/db"
+)
 
 type MySQLRepository struct {
 	db db.DBTX
+	// errMapper mapper.ErrorMapping
 }
 
 func NewMySQLRepository(db db.DBTX) RepoContract {
