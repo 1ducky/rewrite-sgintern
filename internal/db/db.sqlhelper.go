@@ -12,7 +12,7 @@ const (
 	FROM   Command = "FROM"
 )
 
-func CreateRow(rows ...Row) string {
+func CreateRow(rows ...Collom) string {
 	if len(rows) == 0 {
 		return "*"
 	}
@@ -26,7 +26,7 @@ func CreateRow(rows ...Row) string {
 	return strings.Join(strRows, ",")
 }
 
-func BuildQuery(command Command, table Table, rows ...Row) string {
+func BuildQuery(command Command, table Table, rows ...Collom) string {
 	strRows := CreateRow(rows...)
 	query := string(command) + strRows + string(FROM) + string(table)
 	return query
