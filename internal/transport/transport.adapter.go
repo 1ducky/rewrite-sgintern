@@ -1,16 +1,26 @@
 package transport
 
-import "net/http"
+import (
+	"RewriteProject/internal/app/err"
+	"net/http"
+)
 
-func Adapt(f HandlerFn) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if err := f(w, r); err != nil {
-			w.WriteHeader(100)
-			w.Write([]byte(err.Error()))
-		}
-	})
+type Adapter struct {
+	errApp *err.ErrApp
 }
 
-func MuxAdapt(mux *http.ServeMux, pattern string, f HandlerFn) {
-	mux.Handle(pattern, Adapt(f))
+func NewAdapter(errApp *err.ErrApp) *Adapter {
+	return &Adapter{
+		errApp: errApp,
+	}
+}
+
+func (a *Adapter) Adapt(f HandlerFn, domain err.ErrDomain) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := f(w, r); err != nil {
+			entry := a.errApp.Translate(err, domain)
+			w.WriteHeader(entry.StatusCode)
+			w.Write([]byte(entry.Message))
+		}
+	})
 }
