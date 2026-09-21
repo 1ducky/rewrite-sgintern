@@ -1,18 +1,20 @@
 package profile
 
-type UsecaseContract interface {
-	CreateUser(req CreateRequest) error
-	UpdateProfile(req UpdateRequest) error
-	GetUser(id string) (Profile, error)
-	DeleteUser(id string) error
+import "context"
 
-	UploadAvatar(id string) error
-	UploadCover(id string) error
+type UsecaseContract interface {
+	CreateUser(ctx context.Context, req CreateRequest) error
+	UpdateProfile(ctx context.Context, req UpdateRequest) error
+	GetUserByID(ctx context.Context, id string) (Profile, error)
+	DeleteUser(ctx context.Context, id string) error
+
+	UploadAvatar(ctx context.Context, id string) error
+	UploadCover(ctx context.Context, id string) error
 }
 
 type RepoContract interface {
-	CreateUser(req CreateData) error
-	UpdateProfile(req UpdateRequest) error
-	GetUser(id string) (Profile, error)
-	DeleteUser(id string) error
+	CreateUser(ctx context.Context, req CreateData) error
+	UpdateProfile(ctx context.Context, req UpdateRequest) error
+	GetUserByID(ctx context.Context, id string) (Profile, error)
+	DeleteUser(ctx context.Context, id string) error
 }
