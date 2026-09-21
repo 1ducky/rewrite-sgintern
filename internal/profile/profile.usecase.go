@@ -36,7 +36,15 @@ func (uc *Usecase) CreateUser(ctx context.Context, req CreateRequest) error {
 }
 
 func (uc *Usecase) GetUserByID(ctx context.Context, id string) (Profile, error) {
-	return Profile{}, nil
+	res, err := uc.repo.GetUserByID(ctx, id)
+	if err != nil {
+		translate := mapper.MapMySQLError(err)
+		if translate.Error() == mapper.ErrNoRows.Error() {
+			return Profile{}, ErrNotFound
+		}
+		return Profile{}, translate
+	}
+	return res, nil
 }
 func (uc *Usecase) UpdateProfile(ctx context.Context, req UpdateRequest) error {
 	return nil
