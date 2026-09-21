@@ -3,6 +3,7 @@ package profile
 type CreateRequest struct {
 	ID       string `json:"id"`
 	Username string `json:"username"`
+	Tag      string `json:"tag"`
 }
 
 type UpdateRequest struct {

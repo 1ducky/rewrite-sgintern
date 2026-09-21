@@ -10,7 +10,7 @@ import (
 	_ "github.com/go-sql-driver/mysql" //initalize
 )
 
-func NewMySQLDatabase(config *config.DBConfig) (DBTX, error) {
+func NewMySQLDatabase(config *config.DBConfig) (*sql.DB, error) {
 	var dsn = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", config.User, config.Password, config.Host, config.Port, config.DbName)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
