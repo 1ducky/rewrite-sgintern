@@ -3,6 +3,8 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -22,7 +24,8 @@ func LoadConfig() (AppConfig, error) {
 	StorageConf := LoadStorageConfig()
 	authConf := LoadAuthConfig()
 	dbConf := LoadMySQLDatabaseConfig()
-	return AppConfig{StorageConfig: StorageConf, AuthConfig: authConf, DBConfig: dbConf}, nil
+	HTTPConf := LoadHTTPConfig()
+	return AppConfig{StorageConfig: StorageConf, AuthConfig: authConf, DBConfig: dbConf, HTTPConfig: HTTPConf}, nil
 }
 
 func getEnv(key, fallback string) string {
@@ -30,4 +33,13 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func getEnvDuration(key string, defaultVal int) time.Duration {
+	val := getEnv(key, strconv.Itoa(defaultVal))
+	n, err := strconv.Atoi(val)
+	if err != nil {
+		return time.Duration(defaultVal) * time.Second // fall back safely on parse error
+	}
+	return time.Duration(n) * time.Second
 }

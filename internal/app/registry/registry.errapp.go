@@ -1,4 +1,4 @@
-package init
+package registry
 
 import (
 	"RewriteProject/internal/app/err"
@@ -6,10 +6,15 @@ import (
 	"RewriteProject/internal/auth"
 )
 
-func NewErrRegistry() *err.ErrApp {
+type RegisterErr struct {
+	AuthKey  err.ErrDomain
+	AssetKey err.ErrDomain
+}
+
+func NewErrRegistry(keys RegisterErr) *err.ErrApp {
 	errApp := err.NewErrApp()
 	// Auth
-	errApp.Register(err.Auth, []err.ErrEntry{
+	errApp.Register(keys.AuthKey, []err.ErrEntry{
 		{Err: auth.ErrUserNotFound, Code: auth.CodeUserNotFound, StatusCode: 404, Message: "User not found"},
 		{Err: auth.ErrInvalidCredentials, Code: auth.CodeInvalidCredentials, StatusCode: 401, Message: "Invalid credentials"},
 		{Err: auth.ErrPasswordShort, Code: auth.CodePasswordShort, StatusCode: 400, Message: "Password is too short"},
@@ -20,7 +25,7 @@ func NewErrRegistry() *err.ErrApp {
 		{Err: auth.ErrTokenExpired, Code: auth.CodeTokenExpired, StatusCode: 401, Message: "Token expired"},
 		{Err: auth.ErrRoleInvalid, Code: auth.CodeRoleInvalid, StatusCode: 403, Message: "Invalid role"},
 	})
-	errApp.Register(err.Assets, []err.ErrEntry{
+	errApp.Register(keys.AssetKey, []err.ErrEntry{
 		{Err: assets.ErrAssetNotFound, Code: assets.CodeAssetNotFound, StatusCode: 404, Message: "Asset not found"},
 		{Err: assets.ErrAssetAlreadyExists, Code: assets.CodeAssetAlreadyExists, StatusCode: 400, Message: "Asset already exists"},
 		{Err: assets.ErrAssetInvalidMime, Code: assets.CodeAssetInvalidMime, StatusCode: 400, Message: "Invalid mime"},

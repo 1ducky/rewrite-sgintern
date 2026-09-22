@@ -22,6 +22,9 @@ func NewErrApp() *ErrApp {
 }
 
 func (e *ErrApp) Register(domain ErrDomain, errs []ErrEntry) {
+	if e.MapErr[domain] == nil {
+		e.MapErr[domain] = make(map[error]ErrEntry)
+	}
 	for _, err := range errs {
 		e.MapErr[domain][err.Err] = err
 	}

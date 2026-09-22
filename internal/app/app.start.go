@@ -1,48 +1,77 @@
 package app
 
 import (
-	"RewriteProject/internal/assets"
+	errApp "RewriteProject/internal/app/err"
+	"RewriteProject/internal/app/registry"
 	"RewriteProject/internal/config"
 	"RewriteProject/internal/db"
-	"RewriteProject/internal/localstorage"
+	"RewriteProject/internal/transport"
+	"context"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
-type repos struct {
-	assets  assets.AssetRepository
-	storage assets.RepositoryContract
-}
-
-type ucs struct {
-	assets assets.UsecaseContract
-}
-
-func createRepo(cfg config.AppConfig, db db.DBTX) *repos {
-	storage, err := localstorage.NewLocalStorage(cfg.StorageConfig)
+func StartApp() {
+	startAt := time.Now()
+	log.Print("Starting App")
+	cfg, _ := config.LoadConfig()
+	log.Print("Loading Config")
+	ctx := context.Background()
+	log.Print("Creating Context")
+	db, err := db.NewMySQLDatabase(&cfg.DBConfig)
+	log.Print("Creating DB")
 	if err != nil {
 		panic(err)
 	}
-	return &repos{
-		assets:  assets.NewMysqlRepo(db),
-		storage: storage,
-	}
+
+	// Registry
+	log.Print("Creating Err Registry")
+	errs := registry.NewErrRegistry(registry.RegisterErr{AuthKey: errApp.Auth, AssetKey: errApp.Assets})
+	log.Print("Creating Adapter")
+	adapter := transport.NewAdapter(errs)
+	log.Print("Creating Repo")
+	repos := registry.NewRegisterRepo(db, cfg)
+	log.Print("Creating UC")
+	ucs := registry.NewRegisterUC(repos)
+	log.Print("Creating UoW")
+	uows := registry.NewUoWCase(db, cfg)
+	log.Print("Creating App")
+	apps := registry.NewRegisterApp(ucs, uows)
+	log.Print("Creating Handler")
+	handlers := registry.NewRegisterHandler(apps)
+	log.Print("Creating Routes")
+	routes := registry.NewRegisterRoutes(handlers, adapter)
+	log.Print("Creating Transport")
+	httpServer := transport.NewTransport(cfg.HTTPConfig, routes)
+
+	go func(ctx context.Context) {
+		// Graceful Shutdown
+		stop := make(chan os.Signal, 1)
+		signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+		<-stop
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := httpServer.Stop(ctx); err != nil {
+			log.Fatalf("Server shutdown error: %v", err)
+		}
+
+		log.Println("Server stopped gracefully")
+	}(ctx)
+
+	log.Print("Starting Transport")
+	donetime := time.Since(startAt)
+	log.Printf("App started in %s", donetime.String())
+	log.Printf("Server address: %s", httpServer.Address())
+	httpServer.Start()
+
+	defer func() {
+		db.Close()
+		log.Print("Closing DB")
+	}()
+
 }
-
-func createUcs(cfg config.AppConfig, r *repos) *ucs {
-	return &ucs{
-		assets: assets.NewUsecase(cfg.StorageConfig, r.storage, r.assets),
-	}
-}
-
-// func StartApp() {
-// 	cfg,_ := config.LoadConfig()
-// 	ctx := context.Background()
-// 	db, err := db.NewMySQLDatabase(&cfg.DBConfig)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	repos := createRepo(cfg,db)
-// 	ucs := createUcs(cfg,repos)
-// 	handler :=
-
-// 	// transport.Start()
-// }

@@ -4,12 +4,13 @@ import (
 	"RewriteProject/internal/config"
 	"context"
 	"errors"
-	"log/slog"
+	"log"
 	"net"
 	"net/http"
 )
 
-func NewTransport(cfg config.HTTPConfig, handler http.Handler, log *slog.Logger) TransportAPI {
+func NewTransport(cfg config.HTTPConfig, handler http.Handler) TransportAPI {
+	log.Print(cfg)
 
 	return &Transport{
 
@@ -21,7 +22,6 @@ func NewTransport(cfg config.HTTPConfig, handler http.Handler, log *slog.Logger)
 			WriteTimeout:      cfg.WriteTimeout,                     // Maximum duration for writing the response
 			IdleTimeout:       cfg.IdleTimeout,                      // Maximum duration for keeping the connection open
 		},
-		log:     log,
 		Handler: handler,
 	}
 
@@ -43,4 +43,8 @@ func (t *Transport) Start() error {
 // With Timeout Context to wait for the server to finish all request before close
 func (t *Transport) Stop(ctx context.Context) error {
 	return t.server.Shutdown(ctx)
+}
+
+func (t *Transport) Address() string {
+	return t.server.Addr
 }

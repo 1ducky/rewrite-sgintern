@@ -2,6 +2,8 @@ package transport
 
 import (
 	"RewriteProject/internal/app/err"
+	"encoding/json"
+	"log"
 	"net/http"
 )
 
@@ -15,12 +17,18 @@ func NewAdapter(errApp *err.ErrApp) *Adapter {
 	}
 }
 
-func (a *Adapter) Adapt(f HandlerFn, domain err.ErrDomain) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func (a *Adapter) Adapt(f HandlerFn, domain err.ErrDomain) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		if err := f(w, r); err != nil {
+			log.Print(err)
 			entry := a.errApp.Translate(err, domain)
 			w.WriteHeader(entry.StatusCode)
-			w.Write([]byte(entry.Message))
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"code":    entry.Code,
+				"message": entry.Message,
+			})
 		}
-	})
+
+	}
 }

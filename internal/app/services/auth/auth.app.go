@@ -29,12 +29,21 @@ func NewAuthApp(authUsecase auth.UsecaseContract, profileUsecase profile.Usecase
 	}
 }
 
-func (a *AuthApp) Login(ctx context.Context, req LoginRequest) (auth.TokenResponse, error) {
+func (a *AuthApp) Login(ctx context.Context, req LoginRequest) (LoginResource, error) {
 	token, err := a.auth.Login(ctx, auth.LoginPayload{Email: req.Email, Password: req.Password})
 	if err != nil {
-		return auth.TokenResponse{}, err
+		return LoginResource{}, err
 	}
-	return token, nil
+	user, err := a.auth.Verify(ctx, token.AccessToken)
+	if err != nil {
+		return LoginResource{}, err
+	}
+	profile, err := a.profile.GetUserByID(ctx, user.UserID)
+	if err != nil {
+		return LoginResource{}, err
+	}
+
+	return LoginResource{token: token, profile: profile}, nil
 }
 func (a *AuthApp) Register(ctx context.Context, req RegisterRequest) error {
 	err := a.uow.Do(ctx, func(ctx context.Context, r TXUsecase) error {
