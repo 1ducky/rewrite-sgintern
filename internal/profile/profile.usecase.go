@@ -3,7 +3,6 @@ package profile
 import (
 	"RewriteProject/internal/db/mapper"
 	"context"
-	"strings"
 )
 
 type Usecase struct {
@@ -24,7 +23,7 @@ func (uc *Usecase) CreateUser(ctx context.Context, req CreateRequest) error {
 		return ErrInvalidUsername
 	}
 	CreateInput.Username = req.Username
-	CreateInput.Tag = CreateInput.Username[0:4] + strings.Split(req.Username, " ")[0]
+	CreateInput.Tag = CreateInput.Username[0:4] + req.ID[0:4]
 	err := uc.repo.CreateUser(ctx, CreateInput)
 	if err != nil {
 		transalte := mapper.MapMySQLError(err)

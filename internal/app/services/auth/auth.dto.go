@@ -7,5 +7,5 @@ import (
 
 type LoginResource struct {
 	token   auth.TokenResponse
-	profile profile.Profile
+	Profile profile.Profile
 }

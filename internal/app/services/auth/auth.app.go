@@ -43,7 +43,7 @@ func (a *AuthApp) Login(ctx context.Context, req LoginRequest) (LoginResource, e
 		return LoginResource{}, err
 	}
 
-	return LoginResource{token: token, profile: profile}, nil
+	return LoginResource{token: token, Profile: profile}, nil
 }
 func (a *AuthApp) Register(ctx context.Context, req RegisterRequest) error {
 	err := a.uow.Do(ctx, func(ctx context.Context, r TXUsecase) error {

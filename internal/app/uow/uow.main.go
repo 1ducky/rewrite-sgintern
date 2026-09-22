@@ -34,8 +34,6 @@ func (u *UoW[R]) Do(ctx context.Context, fn func(ctx context.Context, r R) error
 		err := tx.Rollback()
 		if err != nil {
 			log.Println("Rollback Transaction Error: ", err.Error())
-		} else {
-			log.Println("Rollback Transaction Success")
 		}
 	}()
 	if err := fn(ctx, u.build(tx)); err != nil {

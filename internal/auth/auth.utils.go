@@ -2,6 +2,8 @@ package auth
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 func CreateContext(ctx context.Context, entity AuthEntity) context.Context {
@@ -14,7 +16,7 @@ func GetContext(ctx context.Context) (AuthEntity, bool) {
 }
 
 func GeneratedUUIDSession(userID string) string {
-	return userID + "_SESSION"
+	return userID + uuid.NewString()[0:4] + "_SESSION"
 }
 func GeneratedUUIDCredential(userID string) string {
 	return userID + "_CREDENTIAL"

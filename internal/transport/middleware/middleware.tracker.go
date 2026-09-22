@@ -3,14 +3,14 @@ package middleware
 import (
 	"RewriteProject/internal/transport"
 	"context"
-	"log/slog"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-func TrackerMiddleware(log *slog.Logger) func(http.Handler) http.Handler {
+func TrackerMiddleware() func(http.Handler) http.Handler {
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -27,7 +27,7 @@ func TrackerMiddleware(log *slog.Logger) func(http.Handler) http.Handler {
 			next.ServeHTTP(tw, r)
 			endReq := time.Since(startTime)
 
-			log.Info("requestid: ", requestId, "", "[", tw.StatusCode, "]  url: ", r.URL.Path, "method: ", r.Method, "", endReq)
+			log.Print("requestid: ", requestId, "", " [", tw.StatusCode, "]  path: ", r.URL.Path, " method: ", r.Method, " cost: ", endReq)
 		})
 	}
 }
