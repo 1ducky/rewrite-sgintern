@@ -1,8 +1,8 @@
 package assets
 
 import (
+	"RewriteProject/internal/app/err"
 	"errors"
-	"net/http"
 )
 
 // Sentinel errors. Usecase & repository layer harus me-wrap error asli
@@ -22,66 +22,20 @@ var (
 	ErrAssetInvalidPath   = errors.New("asset invalid path")
 )
 
-type CodeErr string
-
 // Error Code Contract Frontend
 const (
-	CodeAssetNotFound      CodeErr = "ASSET_NOT_FOUND"
-	CodeAssetAlreadyExists CodeErr = "ASSET_ALREADY_EXISTS"
-	CodeInvalidInput       CodeErr = "INVALID_INPUT"
-	CodeAssetTooLarge      CodeErr = "ASSET_TOO_LARGE"
-	CodeUnsupportedFormat  CodeErr = "UNSUPPORTED_FORMAT"
-	CodeStorageUnavailable CodeErr = "STORAGE_UNAVAILABLE"
-	CodePermissionDenied   CodeErr = "PERMISSION_DENIED"
-	CodeUnauthorized       CodeErr = "UNAUTHORIZED"
-	CodeAssetInvalidMime   CodeErr = "ASSET_INVALID_MIME"
-	CodeInternal           CodeErr = "INTERNAL_ERROR"
-	CodeAssetFailedDelete  CodeErr = "ASSET_FAILED_DELETE"
-	CodeAssetFailedUpdate  CodeErr = "ASSET_FAILED_UPDATE"
-	CodeAssetInvalidPath   CodeErr = "ASSET_INVALID_PATH"
+	CodeAssetNotFound      err.ErrCode = "ASSET_NOT_FOUND"
+	CodeAssetAlreadyExists err.ErrCode = "ASSET_ALREADY_EXISTS"
+	CodeInvalidInput       err.ErrCode = "INVALID_INPUT"
+	CodeAssetTooLarge      err.ErrCode = "ASSET_TOO_LARGE"
+	CodeUnsupportedFormat  err.ErrCode = "UNSUPPORTED_FORMAT"
+	CodeStorageUnavailable err.ErrCode = "STORAGE_UNAVAILABLE"
+	CodePermissionDenied   err.ErrCode = "PERMISSION_DENIED"
+	CodeUnauthorized       err.ErrCode = "UNAUTHORIZED"
+	CodeAssetInvalidMime   err.ErrCode = "ASSET_INVALID_MIME"
+	CodeInternal           err.ErrCode = "INTERNAL_ERROR"
+	CodeAssetFailedDelete  err.ErrCode = "ASSET_FAILED_DELETE"
+	CodeAssetFailedUpdate  err.ErrCode = "ASSET_FAILED_UPDATE"
+	CodeAssetFailedCreate  err.ErrCode = "ASSET_FAILED_CREATE"
+	CodeAssetInvalidPath   err.ErrCode = "ASSET_INVALID_PATH"
 )
-
-type entry struct {
-	err        error
-	code       CodeErr
-	statusCode int
-	message    string
-}
-
-var MapErr = []entry{
-	{ErrAssetNotFound, CodeAssetNotFound, http.StatusNotFound, "Asset tidak ditemukan"},
-	{ErrAssetAlreadyExists, CodeAssetAlreadyExists, http.StatusConflict, "Asset sudah ada"},
-	{ErrInvalidAssetInput, CodeInvalidInput, http.StatusBadRequest, "Input tidak valid"},
-	{ErrAssetInvalidMime, CodeAssetInvalidMime, http.StatusBadRequest, "Jenis asset tidak didukung"},
-	{ErrAssetTooLarge, CodeAssetTooLarge, http.StatusRequestEntityTooLarge, "Ukuran asset melebihi batas"},
-	{ErrUnsupportedFormat, CodeUnsupportedFormat, http.StatusUnsupportedMediaType, "Format asset tidak didukung"},
-	{ErrStorageUnavailable, CodeStorageUnavailable, http.StatusServiceUnavailable, "Layanan penyimpanan sedang tidak tersedia"},
-	{ErrPermissionDenied, CodePermissionDenied, http.StatusForbidden, "Anda tidak memiliki akses"},
-	{ErrUnauthorized, CodeUnauthorized, http.StatusUnauthorized, "Anda belum terautentikasi"},
-	{ErrAssetFailedDelete, CodeAssetFailedDelete, http.StatusInternalServerError, "Gagal menghapus asset"},
-	{ErrAssetFailedUpdate, CodeAssetFailedUpdate, http.StatusInternalServerError, "Gagal update asset"},
-	{ErrAssetInvalidPath, CodeAssetInvalidPath, http.StatusBadRequest, "Asset path tidak valid"},
-}
-
-type ErrorAssets struct {
-	Code    CodeErr
-	Status  int
-	Message string
-}
-
-func TranslateErr(err error) (ErrorAssets, bool) {
-	if err == nil {
-		return ErrorAssets{},
-			false
-	}
-	for _, e := range MapErr {
-		if e.err == err {
-			return ErrorAssets{e.code, e.statusCode, e.message},
-				true
-		}
-	}
-	return ErrorAssets{Code: CodeInternal,
-			Message: "Internal Server Error",
-			Status:  http.StatusInternalServerError},
-		true
-}

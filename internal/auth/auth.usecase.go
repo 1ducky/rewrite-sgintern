@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"RewriteProject/internal/db/mapper"
 	"RewriteProject/internal/utils"
 	"context"
 	"strconv"
@@ -28,7 +29,11 @@ func (s *Service) Login(ctx context.Context, payload LoginPayload) (TokenRespons
 	}
 	credentials, err := s.CredentialRepository.Authentication(ctx, payload.Email)
 	if err != nil {
-		return TokenResponse{}, ErrInvalidCredentials
+		translate := mapper.MapMySQLError(err)
+		if translate.Error() == mapper.ErrNoRows.Error() {
+			return TokenResponse{}, ErrInvalidCredentials
+		}
+		return TokenResponse{}, translate
 	}
 	// Compare hash password
 	if !utils.CheckHashString(payload.Password, credentials.Password) {
@@ -66,6 +71,7 @@ func (s *Service) Login(ctx context.Context, payload LoginPayload) (TokenRespons
 
 func (s *Service) Register(ctx context.Context, payload RegisterPayload) error {
 	// hash password
+
 	switch {
 	case len(strings.Split(payload.Password, "")) < PasswordLength:
 		return ErrPasswordShort
@@ -83,7 +89,15 @@ func (s *Service) Register(ctx context.Context, payload RegisterPayload) error {
 
 	payload.Password = password
 	payload.CredentialID = GeneratedUUIDCredential(payload.UserID)
-	return s.CredentialRepository.Registration(ctx, payload)
+	err = s.CredentialRepository.Registration(ctx, payload)
+	if err != nil {
+		translate := mapper.MapMySQLError(err)
+		if translate.Error() == mapper.ErrDuplicate.Error() {
+			return ErrEmailAlreadyExists
+		}
+		return translate
+	}
+	return nil
 
 }
 
@@ -95,7 +109,11 @@ func (s *Service) Refresh(ctx context.Context, oldrefreshToken string) (TokenRes
 	// Revoke Version
 	session, err := s.SessionRepo.GetByRefreshToken(ctx, oldrefreshToken)
 	if err != nil {
-		return TokenResponse{}, err
+		translate := mapper.MapMySQLError(err)
+		if translate.Error() == mapper.ErrNoRows.Error() {
+			return TokenResponse{}, ErrInvalidCredentials
+		}
+		return TokenResponse{}, translate
 	}
 	if session.Version != token.Version {
 		return TokenResponse{AccessToken: strconv.Itoa(session.Version), RefreshToken: strconv.Itoa(token.Version)}, ErrTokenExpired
@@ -109,7 +127,11 @@ func (s *Service) Refresh(ctx context.Context, oldrefreshToken string) (TokenRes
 	refreshTokenRevokedAt := time.Now().Add(RefreshTokenDuration)
 	role, err := s.CredentialRepository.GetRoleByUserId(ctx, session.UserID)
 	if err != nil {
-		return TokenResponse{}, err
+		translate := mapper.MapMySQLError(err)
+		if translate.Error() == mapper.ErrNoRows.Error() {
+			return TokenResponse{}, ErrInvalidCredentials
+		}
+		return TokenResponse{}, translate
 	}
 
 	newToken, err := s.Token.CreateToken(ctx, TokenEntity{ID: session.ID, Role: role, Version: nextVersion, UserID: session.ID, RevokeAt: accessTokenRevokedAt})
@@ -128,7 +150,11 @@ func (s *Service) Refresh(ctx context.Context, oldrefreshToken string) (TokenRes
 		RevokeAt:        accessTokenRevokedAt,
 	})
 	if err != nil {
-		return TokenResponse{}, err
+		translate := mapper.MapMySQLError(err)
+		if translate.Error() == mapper.ErrNoRows.Error() {
+			return TokenResponse{}, ErrInvalidCredentials
+		}
+		return TokenResponse{}, translate
 	}
 	return TokenResponse{AccessToken: newToken, RefreshToken: newRefreshToken}, nil
 }
@@ -145,7 +171,11 @@ func (s *Service) Logout(ctx context.Context, oldrefreshToken string) error {
 	})
 
 	if err != nil {
-		return err
+		translate := mapper.MapMySQLError(err)
+		if translate.Error() == mapper.ErrNoRows.Error() {
+			return ErrInvalidCredentials
+		}
+		return translate
 	}
 	return nil
 }
@@ -158,7 +188,11 @@ func (s *Service) Verify(ctx context.Context, token string) (TokenEntity, error)
 	// Call repository to check version
 	version, err := s.SessionRepo.GetVersion(ctx, token)
 	if err != nil {
-		return TokenEntity{}, err
+		translate := mapper.MapMySQLError(err)
+		if translate.Error() == mapper.ErrNoRows.Error() {
+			return TokenEntity{}, ErrInvalidCredentials
+		}
+		return TokenEntity{}, translate
 	}
 
 	if tokenMd.Version != version {

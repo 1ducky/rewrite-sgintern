@@ -16,8 +16,8 @@ func GetContext(ctx context.Context) (AuthEntity, bool) {
 }
 
 func GeneratedUUIDSession(userID string) string {
-	return "SESSION_" + userID + "_" + uuid.New().String()
+	return userID + uuid.NewString()[0:4] + "_SESSION"
 }
 func GeneratedUUIDCredential(userID string) string {
-	return "CREDENTIAL_" + userID + "_" + uuid.New().String()
+	return userID + "_CREDENTIAL"
 }

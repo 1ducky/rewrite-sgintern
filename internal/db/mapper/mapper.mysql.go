@@ -7,8 +7,8 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-func mapMySQLError(err error, mapping ErrorMapping) error {
-	mapping = GenerateDefaultMapping(mapping)
+func MapMySQLError(err error) error {
+	mapping := NewPersistanceErrMapper()
 	if err == nil {
 		return nil
 	}
