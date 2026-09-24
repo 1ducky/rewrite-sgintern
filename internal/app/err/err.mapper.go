@@ -1,7 +1,5 @@
 package err
 
-import "errors"
-
 const (
 	Auth   ErrDomain = "auth"
 	Assets ErrDomain = "assets"
@@ -48,8 +46,8 @@ func (e *ErrApp) Translate(err error, domain ErrDomain) *ErrEntry {
 	}
 
 	return &ErrEntry{
-		Err:        errors.New("internal server error"),
-		Code:       "INTERNAL_SERVER_ERROR",
+		Err:        InternalErr,
+		Code:       InternalErrCode,
 		StatusCode: 500,
 		Message:    "Internal Server Error",
 	}

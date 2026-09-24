@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"RewriteProject/internal/transport"
-	"context"
+	"RewriteProject/internal/transport/middleware/tracer"
 	"log"
 	"net/http"
 	"time"
@@ -17,12 +17,12 @@ func TrackerMiddleware() func(http.Handler) http.Handler {
 			startTime := time.Now()
 			// TODO : genorate request id and add to context
 			requestId := uuid.New().String()
-			ctx := context.WithValue(r.Context(), "requestid", requestId)
-			r = r.WithContext(ctx)
+			ctxtracer := tracer.WithTracer(r.Context(), requestId)
+			r = r.WithContext(ctxtracer)
 			tw := &transport.TrasnportWriter{ResponseWriter: w}
 
 			// TODO : add request id to response header
-			w.Header().Set("requestid", requestId)
+			w.Header().Set(tracer.TraceIDKey, requestId)
 			// TODO : add request id to logger
 			next.ServeHTTP(tw, r)
 			endReq := time.Since(startTime)

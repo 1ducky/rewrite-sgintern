@@ -11,10 +11,15 @@ import (
 func NewRegisterRoutes(handlers RegisterHandler, adapter *transport.Adapter) http.Handler {
 	mux := http.NewServeMux()
 	routeAuth(mux, handlers.AuthHandler, adapter)
-	return middleware.Chain(mux, middleware.CORSMiddleware, middleware.TrackerMiddleware())
+	return middleware.Chain(
+		mux,
+		middleware.CORSMiddleware,
+		middleware.TrackerMiddleware(),
+	)
 }
 
 func routeAuth(mux *http.ServeMux, handler auth.Handler, adapter *transport.Adapter) {
 	mux.HandleFunc("POST /auth/register", adapter.Adapt(handler.Register, err.Auth))
 	mux.HandleFunc("POST /auth/login", adapter.Adapt(handler.Login, err.Auth))
+	mux.HandleFunc("GET /auth/session", adapter.Adapt(handler.GetSession, err.Auth))
 }

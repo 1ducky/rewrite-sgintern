@@ -2,10 +2,17 @@ package auth
 
 import (
 	"RewriteProject/internal/auth"
-	"RewriteProject/internal/profile"
 )
 
 type LoginResource struct {
 	token   auth.TokenResponse
-	Profile profile.Profile
+	Profile SessionProfile
+}
+
+type SessionProfile struct {
+	UserID   string `json:"id"`
+	Email    string `json:"email"`
+	Username string `json:"username"`
+	Tag      string `json:"tag"`
+	Avatar   string `json:"avatar"`
 }

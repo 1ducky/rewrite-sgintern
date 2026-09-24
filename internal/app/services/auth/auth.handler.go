@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"RewriteProject/internal/transport"
 	"encoding/json"
 	"net/http"
 )
@@ -28,8 +29,6 @@ func (h Handler) Login(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	w.WriteHeader(http.StatusOK)
-
 	cookie := http.Cookie{
 		Name:     CookieSessionName,
 		Value:    res.token.AccessToken, // The unencrypted data
@@ -42,8 +41,9 @@ func (h Handler) Login(w http.ResponseWriter, r *http.Request) error {
 
 	// Send the cookie to the client in the response header
 	http.SetCookie(w, &cookie)
+	w.WriteHeader(http.StatusOK)
 
-	return json.NewEncoder(w).Encode(res.Profile)
+	return json.NewEncoder(w).Encode(transport.Response[SessionProfile]{Status: transport.StatusSuccess, Data: res.Profile})
 }
 
 func (h Handler) Register(w http.ResponseWriter, r *http.Request) error {
@@ -61,7 +61,22 @@ func (h Handler) Register(w http.ResponseWriter, r *http.Request) error {
 
 	w.WriteHeader(http.StatusOK)
 
-	return json.NewEncoder(w).Encode(map[string]string{
-		"status": "success",
-	})
+	return json.NewEncoder(w).Encode(transport.Response[map[string]string]{Status: transport.StatusSuccess, Data: map[string]string{"message": "User created successfully"}})
+}
+
+func (h Handler) GetSession(w http.ResponseWriter, r *http.Request) error {
+
+	cookie, err := r.Cookie(CookieSessionName)
+	if err != nil {
+		return err
+	}
+
+	res, err := h.AuthApp.GetSession(r.Context(), cookie.Value)
+	if err != nil {
+		return err
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+	return json.NewEncoder(w).Encode(res)
 }

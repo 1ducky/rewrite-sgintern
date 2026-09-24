@@ -43,7 +43,7 @@ func (a *AuthApp) Login(ctx context.Context, req LoginRequest) (LoginResource, e
 		return LoginResource{}, err
 	}
 
-	return LoginResource{token: token, Profile: profile}, nil
+	return LoginResource{token: token, Profile: SessionProfile{UserID: user.UserID, Email: req.Email, Username: profile.Username, Tag: profile.Tag, Avatar: profile.AvatarURL}}, nil
 }
 func (a *AuthApp) Register(ctx context.Context, req RegisterRequest) error {
 	err := a.uow.Do(ctx, func(ctx context.Context, r TXUsecase) error {
@@ -62,4 +62,18 @@ func (a *AuthApp) Register(ctx context.Context, req RegisterRequest) error {
 		return err
 	}
 	return nil
+}
+
+func (a *AuthApp) GetSession(ctx context.Context, token string) (SessionProfile, error) {
+
+	user, err := a.auth.Verify(ctx, token)
+	if err != nil {
+		return SessionProfile{}, err
+	}
+	res, err := a.profile.GetUserByID(ctx, user.UserID)
+	if err != nil {
+		return SessionProfile{}, err
+	}
+
+	return SessionProfile{UserID: res.ID, Username: res.Username, Tag: res.Tag, Avatar: res.AvatarURL}, nil
 }
