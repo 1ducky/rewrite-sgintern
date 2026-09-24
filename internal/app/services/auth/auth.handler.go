@@ -59,11 +59,6 @@ func (h Handler) Register(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	err = json.NewEncoder(w).Encode(nil)
-	if err != nil {
-		return err
-	}
-
 	w.WriteHeader(http.StatusOK)
 
 	return json.NewEncoder(w).Encode(map[string]string{
