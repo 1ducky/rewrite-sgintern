@@ -1,6 +1,6 @@
 package auth
 
-const CookieSessionName = "SESSION_ID"
+const CookieSessionName = "ACCESS_TOKEN"
 const CookieSessionMaxAge = 3600
 const CookieSessionPath = "/"
 const CookieSessionHTTPOnly = true

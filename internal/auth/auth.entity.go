@@ -7,6 +7,7 @@ import (
 
 type TokenEntity struct {
 	ID       string
+	Email    string
 	UserID   string
 	Role     Role
 	Version  int

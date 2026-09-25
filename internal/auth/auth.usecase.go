@@ -44,11 +44,11 @@ func (s *Service) Login(ctx context.Context, payload LoginPayload) (TokenRespons
 	refreshTokenRevokedAt := time.Now().Add(RefreshTokenDuration)
 	SessionID := GeneratedUUIDSession(credentials.UserID)
 
-	token, err := s.Token.CreateToken(ctx, TokenEntity{ID: SessionID, UserID: credentials.UserID, Role: credentials.Role, Version: 1, RevokeAt: accessTokenRevokedAt})
+	token, err := s.Token.CreateToken(ctx, TokenEntity{ID: SessionID, Email: credentials.Email, UserID: credentials.UserID, Role: credentials.Role, Version: 1, RevokeAt: accessTokenRevokedAt})
 	if err != nil {
 		return TokenResponse{}, err
 	}
-	refreshToken, err := s.Token.CreateToken(ctx, TokenEntity{ID: SessionID, UserID: credentials.UserID, Role: credentials.Role, Version: 1, RevokeAt: refreshTokenRevokedAt})
+	refreshToken, err := s.Token.CreateToken(ctx, TokenEntity{ID: SessionID, Email: credentials.Email, UserID: credentials.UserID, Role: credentials.Role, Version: 1, RevokeAt: refreshTokenRevokedAt})
 	if err != nil {
 		return TokenResponse{}, err
 	}
@@ -134,11 +134,11 @@ func (s *Service) Refresh(ctx context.Context, oldrefreshToken string) (TokenRes
 		return TokenResponse{}, translate
 	}
 
-	newToken, err := s.Token.CreateToken(ctx, TokenEntity{ID: session.ID, Role: role, Version: nextVersion, UserID: session.ID, RevokeAt: accessTokenRevokedAt})
+	newToken, err := s.Token.CreateToken(ctx, TokenEntity{ID: session.ID, Email: token.Email, Role: role, Version: nextVersion, UserID: session.ID, RevokeAt: accessTokenRevokedAt})
 	if err != nil {
 		return TokenResponse{}, err
 	}
-	newRefreshToken, err := s.Token.CreateToken(ctx, TokenEntity{ID: session.ID, Role: role, Version: nextVersion, UserID: session.ID, RevokeAt: refreshTokenRevokedAt})
+	newRefreshToken, err := s.Token.CreateToken(ctx, TokenEntity{ID: session.ID, Email: token.Email, Role: role, Version: nextVersion, UserID: session.ID, RevokeAt: refreshTokenRevokedAt})
 	if err != nil {
 		return TokenResponse{}, err
 	}

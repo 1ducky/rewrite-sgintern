@@ -75,5 +75,5 @@ func (a *AuthApp) GetSession(ctx context.Context, token string) (SessionProfile,
 		return SessionProfile{}, err
 	}
 
-	return SessionProfile{UserID: res.ID, Username: res.Username, Tag: res.Tag, Avatar: res.AvatarURL}, nil
+	return SessionProfile{UserID: res.ID, Username: res.Username, Tag: res.Tag, Avatar: res.AvatarURL, Email: user.Email}, nil
 }

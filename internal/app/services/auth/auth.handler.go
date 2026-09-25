@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"RewriteProject/internal/auth"
 	"RewriteProject/internal/transport"
 	"encoding/json"
 	"net/http"
@@ -68,7 +69,7 @@ func (h Handler) GetSession(w http.ResponseWriter, r *http.Request) error {
 
 	cookie, err := r.Cookie(CookieSessionName)
 	if err != nil {
-		return err
+		return auth.ErrTokenInvalid
 	}
 
 	res, err := h.AuthApp.GetSession(r.Context(), cookie.Value)
